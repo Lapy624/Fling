@@ -1,5 +1,5 @@
 -- ============================================================
--- ТРОЛЛЬ-ТЕЛЕПОРТ v3.1 (ПЕРЕТАСКИВАЕМАЯ ИКОНКА)
+-- ТРОЛЛЬ-ТЕЛЕПОРТ v3.2 (ПЕРЕТАСКИВАЕМОЕ МЕНЮ + ИКОНКА)
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -27,28 +27,27 @@ icon.TextScaled = true
 icon.TextColor3 = Color3.fromRGB(255,100,50)
 icon.Parent = screenGui
 
--- DRAG LOGIC
-local dragging = false
-local dragStart = nil
+local iconDragging = false
+local iconDragStart = nil
 local iconStartPos = nil
 
 icon.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
+        iconDragging = true
+        iconDragStart = input.Position
         iconStartPos = icon.Position
     end
 end)
 
 icon.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
+        iconDragging = false
     end
 end)
 
 icon.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStart
+    if iconDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - iconDragStart
         icon.Position = UDim2.new(
             iconStartPos.X.Scale,
             iconStartPos.X.Offset + delta.X,
@@ -58,7 +57,7 @@ icon.InputChanged:Connect(function(input)
     end
 end)
 
--- ===== МЕНЮ =====
+-- ===== ПЕРЕТАСКИВАЕМОЕ МЕНЮ =====
 local menu = Instance.new("Frame")
 menu.Size = UDim2.new(0, 230, 0, 400)
 menu.Position = UDim2.new(0, 75, 0, 10)
@@ -66,6 +65,48 @@ menu.BackgroundColor3 = Color3.fromRGB(18,18,28)
 menu.BorderSizePixel = 0
 menu.Visible = false
 menu.Parent = screenGui
+
+-- DRAG ДЛЯ МЕНЮ (перетаскивание за заголовок)
+local menuDragging = false
+local menuDragStart = nil
+local menuStartPos = nil
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🎯 ТРОЛЛЬ v3.2"
+title.TextColor3 = Color3.fromRGB(255,100,50)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = menu
+
+-- Добавляем драг на заголовок
+title.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        menuDragging = true
+        menuDragStart = input.Position
+        menuStartPos = menu.Position
+    end
+end)
+
+title.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        menuDragging = false
+    end
+end)
+
+title.InputChanged:Connect(function(input)
+    if menuDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - menuDragStart
+        menu.Position = UDim2.new(
+            menuStartPos.X.Scale,
+            menuStartPos.X.Offset + delta.X,
+            menuStartPos.Y.Scale,
+            menuStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
 
 local close = Instance.new("TextButton")
 close.Size = UDim2.new(0,25,0,25)
@@ -77,16 +118,6 @@ close.TextColor3 = Color3.fromRGB(200,200,220)
 close.Font = Enum.Font.Gotham
 close.TextSize = 14
 close.Parent = menu
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,30)
-title.Position = UDim2.new(0,0,0,5)
-title.BackgroundTransparency = 1
-title.Text = "🎯 ТРОЛЛЬ v3.1"
-title.TextColor3 = Color3.fromRGB(255,100,50)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Parent = menu
 
 icon.MouseButton1Click:Connect(function()
     menu.Visible = not menu.Visible
@@ -299,8 +330,9 @@ end)
 -- ============================================================
 updatePlayerList()
 
-print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.1 ЗАГРУЖЕН")
+print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.2 ЗАГРУЖЕН")
 print("📌 Иконку можно перетаскивать пальцем")
+print("📌 Меню можно перетаскивать за заголовок '🎯 ТРОЛЛЬ v3.2'")
 print("📌 1. Выбери игрока в списке")
 print("📌 2. Нажми ТП ЗА СПИНУ")
 print("📌 3. Ударь и нажми ВЕРНУТЬСЯ")
