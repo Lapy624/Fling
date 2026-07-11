@@ -1,5 +1,5 @@
 -- ============================================================
--- ТРОЛЛЬ-ТЕЛЕПОРТ v3.2 (ПЕРЕТАСКИВАЕМОЕ МЕНЮ + ИКОНКА)
+-- ТРОЛЛЬ-ТЕЛЕПОРТ v3.4 (DisplayName + username под ним)
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -59,14 +59,13 @@ end)
 
 -- ===== ПЕРЕТАСКИВАЕМОЕ МЕНЮ =====
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 230, 0, 400)
+menu.Size = UDim2.new(0, 230, 0, 420)
 menu.Position = UDim2.new(0, 75, 0, 10)
 menu.BackgroundColor3 = Color3.fromRGB(18,18,28)
 menu.BorderSizePixel = 0
 menu.Visible = false
 menu.Parent = screenGui
 
--- DRAG ДЛЯ МЕНЮ (перетаскивание за заголовок)
 local menuDragging = false
 local menuDragStart = nil
 local menuStartPos = nil
@@ -75,13 +74,12 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.Position = UDim2.new(0, 0, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "🎯 ТРОЛЛЬ v3.2"
+title.Text = "🎯 ТРОЛЛЬ v3.4"
 title.TextColor3 = Color3.fromRGB(255,100,50)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = menu
 
--- Добавляем драг на заголовок
 title.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         menuDragging = true
@@ -131,7 +129,7 @@ end)
 -- СПИСОК ИГРОКОВ
 -- ============================================================
 local playerList = Instance.new("ScrollingFrame")
-playerList.Size = UDim2.new(1, -10, 0, 180)
+playerList.Size = UDim2.new(1, -10, 0, 200)
 playerList.Position = UDim2.new(0, 5, 0, 40)
 playerList.BackgroundColor3 = Color3.fromRGB(30,30,45)
 playerList.BorderSizePixel = 0
@@ -155,11 +153,11 @@ local playerButtons = {}
 local selectedButton = nil
 
 -- ============================================================
--- ФУНКЦИЯ: ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ
+-- ФУНКЦИЯ: ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ (DisplayName + username)
 -- ============================================================
 local function updatePlayerList()
     for _, child in ipairs(playerList:GetChildren()) do
-        if child:IsA("TextButton") then
+        if child:IsA("ImageButton") or child:IsA("TextLabel") then
             child:Destroy()
         end
     end
@@ -167,38 +165,64 @@ local function updatePlayerList()
 
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr ~= LocalPlayer then
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, -4, 0, 30)
-            b.Text = plr.Name
-            b.BackgroundColor3 = Color3.fromRGB(40,40,60)
-            b.BorderSizePixel = 0
-            b.TextColor3 = Color3.fromRGB(200,200,220)
-            b.Font = Enum.Font.Gotham
-            b.TextSize = 14
-            b.TextXAlignment = Enum.TextXAlignment.Left
-            b.Parent = playerList
+            -- КОНТЕЙНЕР ДЛЯ КНОПКИ
+            local container = Instance.new("ImageButton")
+            container.Size = UDim2.new(1, -4, 0, 42)
+            container.BackgroundColor3 = Color3.fromRGB(40,40,60)
+            container.BorderSizePixel = 0
+            container.Image = ""
+            container.Parent = playerList
+            container:SetAttribute("Player", plr)
 
             if selectedTarget == plr then
-                b.BackgroundColor3 = Color3.fromRGB(0,100,200)
-                selectedButton = b
+                container.BackgroundColor3 = Color3.fromRGB(0,100,200)
+                selectedButton = container
             end
 
-            b.MouseButton1Click:Connect(function()
+            -- DisplayName (БОЛЬШОЙ, ГЛАВНЫЙ)
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, -10, 0, 22)
+            nameLabel.Position = UDim2.new(0, 5, 0, 2)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = plr.DisplayName
+            nameLabel.TextColor3 = Color3.fromRGB(255,255,255)
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextSize = 16
+            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            nameLabel.Parent = container
+
+            -- username (МАЛЕНЬКИЙ, СЕРЫЙ)
+            local userLabel = Instance.new("TextLabel")
+            userLabel.Size = UDim2.new(1, -10, 0, 14)
+            userLabel.Position = UDim2.new(0, 5, 0, 24)
+            userLabel.BackgroundTransparency = 1
+            userLabel.Text = "@" .. plr.Name
+            userLabel.TextColor3 = Color3.fromRGB(150,150,170)
+            userLabel.Font = Enum.Font.Gotham
+            userLabel.TextSize = 11
+            userLabel.TextXAlignment = Enum.TextXAlignment.Left
+            userLabel.Parent = container
+
+            -- НАЖАТИЕ
+            container.MouseButton1Click:Connect(function()
                 if selectedButton then
                     selectedButton.BackgroundColor3 = Color3.fromRGB(40,40,60)
                 end
-                selectedTarget = plr
-                b.BackgroundColor3 = Color3.fromRGB(0,100,200)
-                selectedButton = b
-                print("✅ Выбран: " .. plr.Name)
+                local clickedPlr = container:GetAttribute("Player")
+                if clickedPlr then
+                    selectedTarget = clickedPlr
+                    container.BackgroundColor3 = Color3.fromRGB(0,100,200)
+                    selectedButton = container
+                    print("✅ Выбран: " .. clickedPlr.DisplayName .. " (" .. clickedPlr.Name .. ")")
+                end
             end)
 
-            playerButtons[plr] = b
+            playerButtons[plr] = container
         end
     end
 
     local count = #playerList:GetChildren() - 1
-    playerList.CanvasSize = UDim2.new(0, 0, 0, count * 34 + 10)
+    playerList.CanvasSize = UDim2.new(0, 0, 0, count * 46 + 10)
 end
 
 -- ============================================================
@@ -217,7 +241,7 @@ local function teleportBehind()
 
     local targetChar = selectedTarget.Character
     if not targetChar then
-        print("❌ Игрок " .. selectedTarget.Name .. " не в игре или мёртв")
+        print("❌ Игрок " .. selectedTarget.DisplayName .. " не в игре или мёртв")
         return
     end
 
@@ -238,7 +262,7 @@ local function teleportBehind()
         targetRoot.Position
     )
 
-    print("✅ ТП к " .. selectedTarget.Name)
+    print("✅ ТП к " .. selectedTarget.DisplayName)
 end
 
 -- ============================================================
@@ -269,7 +293,7 @@ end
 -- ============================================================
 local btnBehind = Instance.new("TextButton")
 btnBehind.Size = UDim2.new(0.9, 0, 0, 40)
-btnBehind.Position = UDim2.new(0.05, 0, 0, 230)
+btnBehind.Position = UDim2.new(0.05, 0, 0, 250)
 btnBehind.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 btnBehind.BorderSizePixel = 0
 btnBehind.Text = "🎯 ТП ЗА СПИНУ"
@@ -281,7 +305,7 @@ btnBehind.MouseButton1Click:Connect(teleportBehind)
 
 local btnReturn = Instance.new("TextButton")
 btnReturn.Size = UDim2.new(0.9, 0, 0, 40)
-btnReturn.Position = UDim2.new(0.05, 0, 0, 275)
+btnReturn.Position = UDim2.new(0.05, 0, 0, 295)
 btnReturn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
 btnReturn.BorderSizePixel = 0
 btnReturn.Text = "↩️ ВЕРНУТЬСЯ"
@@ -293,7 +317,7 @@ btnReturn.MouseButton1Click:Connect(returnBack)
 
 local btnClear = Instance.new("TextButton")
 btnClear.Size = UDim2.new(0.9, 0, 0, 30)
-btnClear.Position = UDim2.new(0.05, 0, 0, 320)
+btnClear.Position = UDim2.new(0.05, 0, 0, 340)
 btnClear.BackgroundColor3 = Color3.fromRGB(60,60,80)
 btnClear.BorderSizePixel = 0
 btnClear.Text = "🔄 СБРОСИТЬ ЦЕЛЬ"
@@ -330,9 +354,9 @@ end)
 -- ============================================================
 updatePlayerList()
 
-print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.2 ЗАГРУЖЕН")
-print("📌 Иконку можно перетаскивать пальцем")
-print("📌 Меню можно перетаскивать за заголовок '🎯 ТРОЛЛЬ v3.2'")
+print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.4 ЗАГРУЖЕН")
+print("📌 В списке: большим шрифтом DisplayName, маленьким - логин")
+print("📌 Иконку и меню можно перетаскивать")
 print("📌 1. Выбери игрока в списке")
 print("📌 2. Нажми ТП ЗА СПИНУ")
 print("📌 3. Ударь и нажми ВЕРНУТЬСЯ")
