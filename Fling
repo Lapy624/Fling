@@ -1,4 +1,4 @@
--- Simple Fling v5.0 (Working) - PART 1
+-- Kick & Crash v1.0 (ANTI‑CHEAT KICK + SERVER CRASH) - PART 1
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -6,31 +6,31 @@ local LocalPlayer = Players.LocalPlayer
 
 -- GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FlingGui"
+screenGui.Name = "KickGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer.PlayerGui
 
--- ИКОНКА (кнопка для открытия меню)
+-- Иконка
 local iconBtn = Instance.new("TextButton")
 iconBtn.Size = UDim2.new(0, 50, 0, 50)
 iconBtn.Position = UDim2.new(0, 10, 0, 10)
 iconBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 iconBtn.BorderSizePixel = 0
-iconBtn.Text = "⚙"
+iconBtn.Text = "🔨"
 iconBtn.TextScaled = true
-iconBtn.TextColor3 = Color3.fromRGB(0, 200, 255)
+iconBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
 iconBtn.Parent = screenGui
 local iconCorner = Instance.new("UICorner")
 iconCorner.CornerRadius = UDim.new(1, 0)
 iconCorner.Parent = iconBtn
 local iconStroke = Instance.new("UIStroke")
-iconStroke.Color = Color3.fromRGB(0, 200, 255)
+iconStroke.Color = Color3.fromRGB(255, 200, 50)
 iconStroke.Thickness = 2
 iconStroke.Parent = iconBtn
 
--- МЕНЮ (панель, появляется по клику на иконку)
+-- Меню
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 200, 0, 350)
+mainFrame.Size = UDim2.new(0, 220, 0, 400)
 mainFrame.Position = UDim2.new(0, 70, 0, 10)
 mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
 mainFrame.BorderSizePixel = 0
@@ -40,7 +40,7 @@ local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 10)
 frameCorner.Parent = mainFrame
 local frameStroke = Instance.new("UIStroke")
-frameStroke.Color = Color3.fromRGB(0, 200, 255)
+frameStroke.Color = Color3.fromRGB(255, 200, 50)
 frameStroke.Thickness = 2
 frameStroke.Parent = mainFrame
 
@@ -48,8 +48,8 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.Position = UDim2.new(0, 0, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "💥 FLING HUB"
-title.TextColor3 = Color3.fromRGB(0, 200, 255)
+title.Text = "🔨 KICK & CRASH"
+title.TextColor3 = Color3.fromRGB(255, 200, 50)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = mainFrame
@@ -62,7 +62,7 @@ playerList.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
 playerList.BorderSizePixel = 0
 playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
 playerList.ScrollBarThickness = 4
-playerList.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
+playerList.ScrollBarImageColor3 = Color3.fromRGB(255, 200, 50)
 playerList.Parent = mainFrame
 local listCorner = Instance.new("UICorner")
 listCorner.CornerRadius = UDim.new(0, 6)
@@ -72,22 +72,35 @@ listLayout.SortOrder = Enum.SortOrder.Name
 listLayout.Padding = UDim.new(0, 4)
 listLayout.Parent = playerList
 
--- Кнопка FLING (запуск)
-local flingBtn = Instance.new("TextButton")
-flingBtn.Size = UDim2.new(0.9, 0, 0, 40)
-flingBtn.Position = UDim2.new(0.05, 0, 0, 200)
-flingBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-flingBtn.BorderSizePixel = 0
-flingBtn.Text = "💥 FLING"
-flingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flingBtn.Font = Enum.Font.GothamBold
-flingBtn.TextSize = 18
-flingBtn.Parent = mainFrame
-local flingCorner = Instance.new("UICorner")
-flingCorner.CornerRadius = UDim.new(0, 6)
-flingCorner.Parent = flingBtn
+-- Кнопки действий
+local kickBtn = Instance.new("TextButton")
+kickBtn.Size = UDim2.new(0.43, 0, 0, 40)
+kickBtn.Position = UDim2.new(0.04, 0, 0, 200)
+kickBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+kickBtn.BorderSizePixel = 0
+kickBtn.Text = "👢 KICK"
+kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+kickBtn.Font = Enum.Font.GothamBold
+kickBtn.TextSize = 16
+kickBtn.Parent = mainFrame
+local kickCorner = Instance.new("UICorner")
+kickCorner.CornerRadius = UDim.new(0, 6)
+kickCorner.Parent = kickBtn
 
--- Статус (информация)
+local crashBtn = Instance.new("TextButton")
+crashBtn.Size = UDim2.new(0.43, 0, 0, 40)
+crashBtn.Position = UDim2.new(0.53, 0, 0, 200)
+crashBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 200)
+crashBtn.BorderSizePixel = 0
+crashBtn.Text = "💀 CRASH"
+crashBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+crashBtn.Font = Enum.Font.GothamBold
+crashBtn.TextSize = 16
+crashBtn.Parent = mainFrame
+local crashCorner = Instance.new("UICorner")
+crashCorner.CornerRadius = UDim.new(0, 6)
+crashCorner.Parent = crashBtn
+
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(1, -10, 0, 25)
 statusLabel.Position = UDim2.new(0, 5, 0, 250)
@@ -99,7 +112,7 @@ statusLabel.TextSize = 14
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.Parent = mainFrame
 
--- Кнопка закрыть меню (X)
+-- Закрыть
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 25, 0, 25)
 closeBtn.Position = UDim2.new(1, -30, 0, 5)
@@ -113,14 +126,12 @@ closeBtn.Parent = mainFrame
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(1, 0)
 closeCorner.Parent = closeBtn
--- Simple Fling v5.0 (Working) - PART 2
--- СОСТОЯНИЕ
+-- Kick & Crash v1.0 - PART 2
 local selectedPlayers = {}
-local isFlinging = false
+local isRunning = false
 local playerButtons = {}
-
--- ОТКРЫТИЕ/ЗАКРЫТИЕ МЕНЮ
 local menuOpen = false
+
 iconBtn.MouseButton1Click:Connect(function()
     menuOpen = not menuOpen
     mainFrame.Visible = menuOpen
@@ -135,7 +146,6 @@ closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ
 local function updatePlayerList()
     for _, child in ipairs(playerList:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
@@ -181,7 +191,6 @@ local function updatePlayerList()
     playerList.CanvasSize = UDim2.new(0, 0, 0, count * 32 + 10)
 end
 
--- СТАТУС
 local function updateStatus()
     local count = 0
     for _ in pairs(selectedPlayers) do count = count + 1 end
@@ -194,90 +203,160 @@ local function updateStatus()
     end
 end
 
--- ========== ОСНОВНОЙ ФЛИНГ ==========
-local function doFling(target)
+-- ========== KICK (античит выносит) ==========
+local function kickPlayer(target)
     if not target or not target.Character then return end
     local root = target.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
-    
-    -- Направление: от меня к цели + вверх
-    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not myRoot then return end
-    
-    local dir = (root.Position - myRoot.Position).Unit
-    local force = dir * 350 + Vector3.new(0, 150, 0)  -- 350 сила + подброс
-    
-    -- МЕТОД 1: Прямой импульс (Velocity)
+
+    -- Резкий полёт вверх с огромной скоростью – античит расценит как читерство
+    local force = Vector3.new(math.random(-500, 500), 10000, math.random(-500, 500))
     root.Velocity = force
-    
-    -- МЕТОД 2: BodyVelocity (надёжный, работает почти везде)
+
+    -- Дополнительные толчки для гарантии
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
     bv.Velocity = force
     bv.Parent = root
-    
-    -- МЕТОД 3: BodyThrust (дополнительный толчок)
+
     local bt = Instance.new("BodyThrust")
-    bt.Force = force * 500
+    bt.Force = force * 1000
     bt.Location = root.Position
     bt.Parent = root
-    
-    -- Удаляем через 0.5 секунды, чтобы не мешать
-    task.wait(0.5)
+
+    -- Создаём кучу частей вокруг игрока (перегрузка клиента)
+    for i = 1, 20 do
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(1, 1, 1)
+        part.Position = root.Position + Vector3.new(math.random(-50, 50), math.random(-50, 50), math.random(-50, 50))
+        part.Anchored = true
+        part.Parent = game.Workspace
+        game:GetService("Debris"):AddItem(part, 0.5)
+    end
+
+    -- Отключаем Humanoid, чтобы он не мог остановиться
+    local humanoid = target.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+    end
+
+    task.wait(0.3)
     bv:Destroy()
     bt:Destroy()
 end
 
--- ========== ЗАПУСК ==========
-local function startFling()
-    if isFlinging then return end
-    
-    -- Собираем цели
+-- ========== CRASH (обрушить сервер) ==========
+local function crashServer()
+    -- Спамим новыми объектами в Workspace (перегрузка сервера)
+    for i = 1, 500 do
+        local p = Instance.new("Part")
+        p.Size = Vector3.new(10, 10, 10)
+        p.Position = Vector3.new(math.random(-1000, 1000), math.random(0, 100), math.random(-1000, 1000))
+        p.Anchored = true
+        p.Parent = game.Workspace
+        p.Name = "CrashPart_" .. i
+    end
+
+    -- Создаём тысячи удалённых событий (спам)
+    for i = 1, 100 do
+        local re = Instance.new("RemoteEvent")
+        re.Name = "CrashEvent_" .. i
+        re.Parent = game.ReplicatedStorage
+    end
+
+    -- Бесконечный цикл с созданием частей (если сервер не прибьёт)
+    spawn(function()
+        while true do
+            local p = Instance.new("Part")
+            p.Size = Vector3.new(5, 5, 5)
+            p.Position = Vector3.new(math.random(-500, 500), math.random(0, 200), math.random(-500, 500))
+            p.Anchored = true
+            p.Parent = game.Workspace
+            p.Name = "SpamPart"
+            game:GetService("Debris"):AddItem(p, 0.1)
+            task.wait()
+        end
+    end)
+
+    -- Отправляем фейковые RemoteEvent вызовы (если есть)
+    for _, re in ipairs(game.ReplicatedStorage:GetChildren()) do
+        if re:IsA("RemoteEvent") then
+            spawn(function()
+                while true do
+                    pcall(function()
+                        re:FireServer("CRASH", "SPAM", "KILL")
+                    end)
+                    task.wait()
+                end
+            end)
+        end
+    end
+
+    statusLabel.Text = "💀 CRASH ЗАПУЩЕН!"
+    statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+end
+
+-- ========== ЗАПУСК ДЕЙСТВИЙ ==========
+local function startAction(mode)
+    if isRunning then return end
+
     local targets = {}
     for plr, _ in pairs(selectedPlayers) do
         if plr and plr.Character then
             table.insert(targets, plr)
         end
     end
-    
-    if #targets == 0 then
+
+    if #targets == 0 and mode ~= "crash" then
         statusLabel.Text = "❌ Нет целей!"
         statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
         task.wait(1)
         updateStatus()
         return
     end
-    
-    isFlinging = true
-    flingBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    flingBtn.Text = "⏳ ..."
-    statusLabel.Text = "⏳ Флингуем..."
-    
-    for _, plr in ipairs(targets) do
-        doFling(plr)
-        task.wait(0.1)
+
+    isRunning = true
+    statusLabel.Text = "⏳ Выполняется..."
+    statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+
+    if mode == "kick" then
+        for _, plr in ipairs(targets) do
+            kickPlayer(plr)
+            task.wait(0.1)
+        end
+    elseif mode == "crash" then
+        crashServer()
     end
-    
-    isFlinging = false
-    flingBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    flingBtn.Text = "💥 FLING"
+
+    isRunning = false
     updateStatus()
 end
 
-flingBtn.MouseButton1Click:Connect(startFling)
+-- НАЗНАЧЕНИЕ КНОПОК
+kickBtn.MouseButton1Click:Connect(function()
+    startAction("kick")
+end)
 
--- ГОРЯЧАЯ КЛАВИША F (для ПК)
+crashBtn.MouseButton1Click:Connect(function()
+    startAction("crash")
+end)
+
+-- ГОРЯЧИЕ КЛАВИШИ (ПК)
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
-    if input.KeyCode == Enum.KeyCode.F then
-        startFling()
+    if input.KeyCode == Enum.KeyCode.K then
+        startAction("kick")
+    elseif input.KeyCode == Enum.KeyCode.C then
+        startAction("crash")
     end
 end)
 
--- ОБНОВЛЕНИЕ ПРИ ВХОДЕ/ВЫХОДЕ
+-- ОБНОВЛЕНИЕ
 Players.PlayerAdded:Connect(updatePlayerList)
 Players.PlayerRemoving:Connect(updatePlayerList)
 
--- ИНИЦИАЛИЗАЦИЯ
+-- INIT
 updatePlayerList()
 updateStatus()
