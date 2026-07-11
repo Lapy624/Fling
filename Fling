@@ -1,29 +1,173 @@
--- ULTIMATE KICK & CRASH v6.0 (SERVER + CLIENT)
--- ============================================================
--- РАЗМЕСТИТЬ В ServerScriptService
--- ============================================================
+-- ULTIMATE KICK & CRASH v7.0 (UNIVERSAL - ONE SCRIPT)
+-- РАБОТАЕТ ВЕЗДЕ: ServerScriptService, StarterPlayerScripts, Workspace
 
+local isServer = game:GetService("RunService"):IsServer()
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local RunService = game:GetService("RunService")
 
 -- ===== СОЗДАЁМ REMOTE EVENT =====
 local remote = Instance.new("RemoteEvent")
 remote.Name = "KickCrashRemote"
 remote.Parent = ReplicatedStorage
 
--- ===== ЗАЩИТА ОТ СПАМА =====
-local cooldowns = {}
+-- ============================================================
+-- ===== СЕРВЕРНАЯ ЧАСТЬ =====
+-- ============================================================
+if isServer then
+    print("🚀 KICK & CRASH v7.0 (SERVER MODE)")
 
--- ===== GUI ДЛЯ ИГРОКА (СОЗДАЁТСЯ НА КЛИЕНТЕ) =====
-local function createGUI(player)
+    local cooldowns = {}
+
+    local function KickPlayer(player, reason)
+        if player and player.Parent then
+            player:Kick(reason or "AntiCheat")
+        end
+    end
+
+    local function ServerKick(target)
+        if not target or not target.Character then return end
+        local root = target.Character:FindFirstChild("HumanoidRootPart")
+        local humanoid = target.Character:FindFirstChild("Humanoid")
+        if not root or not humanoid then return end
+
+        humanoid.PlatformStand = true
+        for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
+            humanoid:SetStateEnabled(state, false)
+        end
+
+        root.CFrame = CFrame.new(root.Position.X, -9999, root.Position.Z)
+
+        spawn(function()
+            while target and target.Character and root.Parent do
+                local force = Vector3.new(math.random(-50000, 50000), 50000, math.random(-50000, 50000))
+                root.Velocity = force
+                humanoid.WalkSpeed = 1000
+                local bv = Instance.new("BodyVelocity")
+                bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+                bv.Velocity = force
+                bv.Parent = root
+                task.wait(0.02)
+                bv:Destroy()
+            end
+        end)
+
+        task.wait(5)
+        KickPlayer(target, "SpeedHack")
+    end
+
+    local function ServerCrash()
+        for i = 1, 50 do
+            local model = Instance.new("Model")
+            model.Name = "CrashModel_" .. i
+            model.Parent = Workspace
+            for j = 1, 20 do
+                local part = Instance.new("Part")
+                part.Size = Vector3.new(10, 10, 10)
+                part.CFrame = CFrame.new(math.random(-5000, 5000), math.random(-500, 500), math.random(-5000, 5000))
+                part.Anchored = true
+                part.Material = Enum.Material.SmoothPlastic
+                local mesh = Instance.new("SpecialMesh")
+                mesh.MeshType = Enum.MeshType.Sphere
+                mesh.Scale = Vector3.new(1, 1, 1) * 5
+                mesh.Parent = part
+                part.Parent = model
+            end
+        end
+
+        spawn(function()
+            while true do
+                local p = Instance.new("Part")
+                p.Size = Vector3.new(1, 1, 1)
+                p.CFrame = CFrame.new(math.random(-1000, 1000), math.random(0, 200), math.random(-1000, 1000))
+                p.Anchored = true
+                p.Parent = Workspace
+                game:GetService("Debris"):AddItem(p, 0.05)
+                task.wait()
+            end
+        end)
+    end
+
+    remote.OnServerEvent:Connect(function(player, mode, targets)
+        local now = tick()
+        if cooldowns[player] and (now - cooldowns[player]) < 0.5 then
+            KickPlayer(player, "RemoteSpam")
+            return
+        end
+        cooldowns[player] = now
+
+        if typeof(mode) ~= "string" then
+            KickPlayer(player, "InvalidData")
+            return
+        end
+
+        if mode == "kick" then
+            if typeof(targets) ~= "table" then
+                KickPlayer(player, "InvalidData")
+                return
+            end
+            for _, target in ipairs(targets) do
+                if typeof(target) ~= "Instance" then
+                    KickPlayer(player, "InvalidData")
+                    return
+                end
+                ServerKick(target)
+            end
+        elseif mode == "crash" then
+            ServerCrash()
+        else
+            KickPlayer(player, "InvalidCommand")
+        end
+    end)
+
+    -- РУКОПОЖАТИЕ
+    Players.PlayerAdded:Connect(function(player)
+        spawn(function()
+            while player and player.Parent do
+                task.wait(10)
+                local nonce = math.random(100000, 999999)
+                player:SetAttribute("Handshake", nonce)
+                remote:FireClient(player, "Ping", nonce)
+                task.wait(3)
+                if player:GetAttribute("Handshake") == nonce then
+                    -- ok
+                else
+                    KickPlayer(player, "AntiCheat")
+                end
+            end
+        end)
+    end)
+
+    remote.OnServerEvent:Connect(function(player, mode, data)
+        if mode == "Pong" then
+            if typeof(data) ~= "number" then
+                KickPlayer(player, "InvalidData")
+                return
+            end
+            if player:GetAttribute("Handshake") == data then
+                player:SetAttribute("Handshake", nil)
+            end
+        end
+    end)
+
+-- ============================================================
+-- ===== КЛИЕНТСКАЯ ЧАСТЬ (GUI) =====
+-- ============================================================
+else
+    print("🔨 KICK & CRASH v7.0 (CLIENT MODE)")
+
+    local LocalPlayer = Players.LocalPlayer
+    local UserInputService = game:GetService("UserInputService")
+
+    -- Ждём RemoteEvent
+    local remote = ReplicatedStorage:WaitForChild("KickCrashRemote")
+
+    -- ===== GUI =====
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "KickGui"
     screenGui.ResetOnSpawn = false
-    screenGui.Parent = player.PlayerGui
+    screenGui.Parent = LocalPlayer.PlayerGui
 
-    -- ИКОНКА
     local iconBtn = Instance.new("TextButton")
     iconBtn.Size = UDim2.new(0, 50, 0, 50)
     iconBtn.Position = UDim2.new(0, 10, 0, 10)
@@ -41,7 +185,6 @@ local function createGUI(player)
     iconStroke.Thickness = 2
     iconStroke.Parent = iconBtn
 
-    -- МЕНЮ
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 220, 0, 400)
     mainFrame.Position = UDim2.new(0, 70, 0, 10)
@@ -67,7 +210,6 @@ local function createGUI(player)
     title.TextSize = 18
     title.Parent = mainFrame
 
-    -- СПИСОК ИГРОКОВ
     local playerList = Instance.new("ScrollingFrame")
     playerList.Size = UDim2.new(1, -10, 0, 150)
     playerList.Position = UDim2.new(0, 5, 0, 40)
@@ -85,7 +227,6 @@ local function createGUI(player)
     listLayout.Padding = UDim.new(0, 4)
     listLayout.Parent = playerList
 
-    -- КНОПКИ
     local kickBtn = Instance.new("TextButton")
     kickBtn.Size = UDim2.new(0.43, 0, 0, 40)
     kickBtn.Position = UDim2.new(0.04, 0, 0, 200)
@@ -139,7 +280,7 @@ local function createGUI(player)
     closeCorner.CornerRadius = UDim.new(1, 0)
     closeCorner.Parent = closeBtn
 
-    -- ===== СОСТОЯНИЕ (клиентское) =====
+    -- ===== СОСТОЯНИЕ =====
     local selectedPlayers = {}
     local isRunning = false
     local menuOpen = false
@@ -164,7 +305,7 @@ local function createGUI(player)
         end
 
         for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= player then
+            if plr ~= LocalPlayer then
                 local b = Instance.new("TextButton")
                 b.Size = UDim2.new(1, -4, 0, 28)
                 b.Text = plr.Name
@@ -212,9 +353,6 @@ local function createGUI(player)
         end
     end
 
-    -- ============================================================
-    -- ===== ОТПРАВКА КОМАНД НА СЕРВЕР =====
-    -- ============================================================
     local function startAction(mode)
         if isRunning then return end
 
@@ -237,7 +375,6 @@ local function createGUI(player)
         statusLabel.Text = "⏳ Выполняется..."
         statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
 
-        -- Отправляем запрос на сервер
         remote:FireServer(mode, targets)
 
         isRunning = false
@@ -247,174 +384,15 @@ local function createGUI(player)
     kickBtn.MouseButton1Click:Connect(function() startAction("kick") end)
     crashBtn.MouseButton1Click:Connect(function() startAction("crash") end)
 
-    -- Обновление списка при входе/выходе
     Players.PlayerAdded:Connect(updatePlayerList)
     Players.PlayerRemoving:Connect(updatePlayerList)
+
+    remote.OnClientEvent:Connect(function(mode, data)
+        if mode == "Ping" then
+            remote:FireServer("Pong", data)
+        end
+    end)
 
     updatePlayerList()
     updateStatus()
 end
-
--- ============================================================
--- ===== СЕРВЕРНАЯ ЛОГИКА =====
--- ============================================================
-
-local function KickPlayer(player, reason)
-    if player and player.Parent then
-        player:Kick(reason or "AntiCheat")
-    end
-end
-
--- ===== МЕТОД КИКА (СЕРВЕРНЫЙ) =====
-local function ServerKick(target)
-    if not target or not target.Character then return end
-    local root = target.Character:FindFirstChild("HumanoidRootPart")
-    local humanoid = target.Character:FindFirstChild("Humanoid")
-    if not root or not humanoid then return end
-
-    -- Отключаем всё
-    humanoid.PlatformStand = true
-    for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
-        humanoid:SetStateEnabled(state, false)
-    end
-
-    -- Телепорт под карту
-    root.CFrame = CFrame.new(root.Position.X, -9999, root.Position.Z)
-
-    -- Бесконечный спам скорости (серверный, его нельзя отключить)
-    spawn(function()
-        while target and target.Character and root.Parent do
-            local force = Vector3.new(math.random(-50000, 50000), 50000, math.random(-50000, 50000))
-            root.Velocity = force
-            humanoid.WalkSpeed = 1000
-
-            local bv = Instance.new("BodyVelocity")
-            bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-            bv.Velocity = force
-            bv.Parent = root
-            task.wait(0.02)
-            bv:Destroy()
-        end
-    end)
-
-    -- Кикаем через 5 секунд, если античит не сработал
-    task.wait(5)
-    KickPlayer(target, "SpeedHack")
-end
-
--- ===== МЕТОД КРАША (СЕРВЕРНЫЙ) =====
-local function ServerCrash()
-    -- Создаём модель с частями (серверная нагрузка)
-    for i = 1, 50 do
-        local model = Instance.new("Model")
-        model.Name = "CrashModel_" .. i
-        model.Parent = Workspace
-
-        for j = 1, 20 do
-            local part = Instance.new("Part")
-            part.Size = Vector3.new(10, 10, 10)
-            part.CFrame = CFrame.new(math.random(-5000, 5000), math.random(-500, 500), math.random(-5000, 5000))
-            part.Anchored = true
-            part.Material = Enum.Material.SmoothPlastic
-
-            local mesh = Instance.new("SpecialMesh")
-            mesh.MeshType = Enum.MeshType.Sphere
-            mesh.Scale = Vector3.new(1, 1, 1) * 5
-            mesh.Parent = part
-
-            part.Parent = model
-        end
-    end
-
-    -- Бесконечный спам частей
-    spawn(function()
-        while true do
-            local p = Instance.new("Part")
-            p.Size = Vector3.new(1, 1, 1)
-            p.CFrame = CFrame.new(math.random(-1000, 1000), math.random(0, 200), math.random(-1000, 1000))
-            p.Anchored = true
-            p.Parent = Workspace
-            game:GetService("Debris"):AddItem(p, 0.05)
-            task.wait()
-        end
-    end)
-end
-
--- ============================================================
--- ===== ОБРАБОТКА ЗАПРОСОВ ОТ КЛИЕНТА =====
--- ============================================================
-remote.OnServerEvent:Connect(function(player, mode, targets)
-    -- Защита от спама
-    local now = tick()
-    if cooldowns[player] and (now - cooldowns[player]) < 0.5 then
-        KickPlayer(player, "RemoteSpam")
-        return
-    end
-    cooldowns[player] = now
-
-    -- Проверка типа данных
-    if typeof(mode) ~= "string" then
-        KickPlayer(player, "InvalidData")
-        return
-    end
-
-    if mode == "kick" then
-        if typeof(targets) ~= "table" then
-            KickPlayer(player, "InvalidData")
-            return
-        end
-        for _, target in ipairs(targets) do
-            if typeof(target) ~= "Instance" then
-                KickPlayer(player, "InvalidData")
-                return
-            end
-            ServerKick(target)
-        end
-    elseif mode == "crash" then
-        ServerCrash()
-    else
-        KickPlayer(player, "InvalidCommand")
-    end
-end)
-
--- ============================================================
--- ===== РУКОПОЖАТИЕ (ЗАЩИТА ОТ УДАЛЕНИЯ СКРИПТА) =====
--- ============================================================
-Players.PlayerAdded:Connect(function(player)
-    -- Создаём GUI для игрока
-    createGUI(player)
-
-    -- Запускаем рукопожатие
-    spawn(function()
-        while player and player.Parent do
-            task.wait(10) -- Проверка каждые 10 секунд
-
-            local nonce = math.random(100000, 999999)
-            player:SetAttribute("Handshake", nonce)
-            remote:FireClient(player, "Ping", nonce)
-
-            task.wait(3)
-            if player:GetAttribute("Handshake") == nonce then
-                -- Ответ получен
-            else
-                -- Нет ответа -> скрипт удалён
-                KickPlayer(player, "AntiCheat")
-            end
-        end
-    end)
-end)
-
--- ===== ОБРАБОТКА ОТВЕТА НА РУКОПОЖАТИЕ =====
-remote.OnServerEvent:Connect(function(player, mode, data)
-    if mode == "Pong" then
-        if typeof(data) ~= "number" then
-            KickPlayer(player, "InvalidData")
-            return
-        end
-        if player:GetAttribute("Handshake") == data then
-            player:SetAttribute("Handshake", nil)
-        end
-    end
-end)
-
-print("🚀 ULTIMATE KICK & CRASH v6.0 ЗАГРУЖЕН")
