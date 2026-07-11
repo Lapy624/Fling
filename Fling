@@ -1,11 +1,12 @@
 -- ============================================================
--- ТРОЛЛЬ-ТЕЛЕПОРТ v3.0 (ВЫБОР ЦЕЛИ + СОХРАНЕНИЕ)
+-- ТРОЛЛЬ-ТЕЛЕПОРТ v3.1 (ПЕРЕТАСКИВАЕМАЯ ИКОНКА)
 -- ============================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 local Workspace = game:GetService("Workspace")
+local UserInputService = game:GetService("UserInputService")
 
 -- ============================================================
 -- GUI
@@ -15,6 +16,7 @@ screenGui.Name = "TrollGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer.PlayerGui
 
+-- ===== ПЕРЕТАСКИВАЕМАЯ ИКОНКА =====
 local icon = Instance.new("TextButton")
 icon.Size = UDim2.new(0, 55, 0, 55)
 icon.Position = UDim2.new(0, 10, 0, 10)
@@ -25,6 +27,38 @@ icon.TextScaled = true
 icon.TextColor3 = Color3.fromRGB(255,100,50)
 icon.Parent = screenGui
 
+-- DRAG LOGIC
+local dragging = false
+local dragStart = nil
+local iconStartPos = nil
+
+icon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        iconStartPos = icon.Position
+    end
+end)
+
+icon.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+icon.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStart
+        icon.Position = UDim2.new(
+            iconStartPos.X.Scale,
+            iconStartPos.X.Offset + delta.X,
+            iconStartPos.Y.Scale,
+            iconStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ===== МЕНЮ =====
 local menu = Instance.new("Frame")
 menu.Size = UDim2.new(0, 230, 0, 400)
 menu.Position = UDim2.new(0, 75, 0, 10)
@@ -48,7 +82,7 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,30)
 title.Position = UDim2.new(0,0,0,5)
 title.BackgroundTransparency = 1
-title.Text = "🎯 ТРОЛЛЬ v3.0"
+title.Text = "🎯 ТРОЛЛЬ v3.1"
 title.TextColor3 = Color3.fromRGB(255,100,50)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
@@ -113,18 +147,15 @@ local function updatePlayerList()
             b.TextXAlignment = Enum.TextXAlignment.Left
             b.Parent = playerList
 
-            -- Подсветка, если этот игрок выбран
             if selectedTarget == plr then
                 b.BackgroundColor3 = Color3.fromRGB(0,100,200)
                 selectedButton = b
             end
 
             b.MouseButton1Click:Connect(function()
-                -- Снимаем подсветку со старого
                 if selectedButton then
                     selectedButton.BackgroundColor3 = Color3.fromRGB(40,40,60)
                 end
-                -- Выбираем нового
                 selectedTarget = plr
                 b.BackgroundColor3 = Color3.fromRGB(0,100,200)
                 selectedButton = b
@@ -140,7 +171,7 @@ local function updatePlayerList()
 end
 
 -- ============================================================
--- ФУНКЦИЯ: ВСТАТЬ ЗА СПИНУ ВЫБРАННОГО ИГРОКА
+-- ФУНКЦИЯ: ВСТАТЬ ЗА СПИНУ
 -- ============================================================
 local function teleportBehind()
     local char = LocalPlayer.Character
@@ -162,20 +193,15 @@ local function teleportBehind()
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetRoot then return end
 
-    -- Сохраняем текущую позицию
     savedPosition = root.Position
     savedCFrame = root.CFrame
     savedCameraCFrame = Camera.CFrame
 
-    -- Направление от цели к нам
     local dir = (root.Position - targetRoot.Position).Unit
-    -- Встаём за спиной (4 студии от хитбокса)
     local behindPos = targetRoot.Position + dir * 4
 
-    -- Телепорт
     root.CFrame = CFrame.new(behindPos, targetRoot.Position)
 
-    -- Камера смотрит в спину жертвы
     Camera.CFrame = CFrame.new(
         behindPos + Vector3.new(0, 1.5, 0),
         targetRoot.Position
@@ -273,8 +299,8 @@ end)
 -- ============================================================
 updatePlayerList()
 
-print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.0 ЗАГРУЖЕН")
+print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.1 ЗАГРУЖЕН")
+print("📌 Иконку можно перетаскивать пальцем")
 print("📌 1. Выбери игрока в списке")
 print("📌 2. Нажми ТП ЗА СПИНУ")
 print("📌 3. Ударь и нажми ВЕРНУТЬСЯ")
-print("📌 Цель сохраняется, пока не выберешь нового")
