@@ -1,282 +1,17 @@
 -- ============================================================
--- ULTIMATE GHOST + GOD MODE v10.0 (FIXED - ALL IN ONE)
+-- ТРОЛЛЬ-ТЕЛЕПОРТ v3.0 (ВЫБОР ЦЕЛИ + СОХРАНЕНИЕ)
 -- ============================================================
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
 local Workspace = game:GetService("Workspace")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
 -- ============================================================
--- ГЛОБАЛЬНЫЕ СОСТОЯНИЯ
--- ============================================================
-local ghostActive = false
-local godActive = false
-local cloneCharacter = nil
-local shieldActive = false
-local shieldTimer = nil
-local healthConnection = nil
-local godLoopConnection = nil
-
--- ============================================================
--- ФУНКЦИЯ: СОЗДАНИЕ КЛОНА-ПРИЗРАКА
--- ============================================================
-local function createGhostClone()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    cloneCharacter = char:Clone()
-    cloneCharacter.Name = "GhostClone"
-    cloneCharacter.Parent = Workspace
-
-    for _, part in ipairs(cloneCharacter:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 0.3
-            part.CanCollide = false
-            part.Material = Enum.Material.Neon
-            part.Color = Color3.fromRGB(0, 200, 255)
-        end
-    end
-
-    local humanoid = cloneCharacter:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.PlatformStand = true
-        humanoid.WalkSpeed = 0
-        humanoid.JumpPower = 0
-        humanoid.MaxHealth = 9e9
-        humanoid.Health = 9e9
-        humanoid.BreakJointsOnDeath = false
-    end
-
-    local cloneRoot = cloneCharacter:FindFirstChild("HumanoidRootPart")
-    if cloneRoot then
-        cloneRoot.CFrame = root.CFrame
-    end
-
-    local function onCloneHealthChange()
-        if not cloneCharacter or not cloneCharacter.Parent then return end
-        local h = cloneCharacter:FindFirstChild("Humanoid")
-        if h and h.Health < h.MaxHealth then
-            h.Health = h.MaxHealth
-        end
-    end
-    if humanoid then
-        humanoid:GetPropertyChangedSignal("Health"):Connect(onCloneHealthChange)
-    end
-
-    return cloneCharacter
-end
-
--- ============================================================
--- ФУНКЦИЯ: ЩИТ ПРИ СМЕРТИ
--- ============================================================
-local function activateShield()
-    if shieldActive then return end
-    shieldActive = true
-    local char = LocalPlayer.Character
-    if not char then return end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then return end
-
-    humanoid.BreakJointsOnDeath = false
-    humanoid.MaxHealth = 9e9
-    humanoid.Health = 9e9
-    humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
-
-    for _, part in ipairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Material = Enum.Material.Neon
-            part.Color = Color3.fromRGB(0, 255, 255)
-        end
-    end
-
-    if shieldTimer then shieldTimer:Disconnect() end
-    shieldTimer = task.delay(5, function()
-        shieldActive = false
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Material = Enum.Material.SmoothPlastic
-                part.Color = Color3.fromRGB(255, 255, 255)
-            end
-        end
-        humanoid.BreakJointsOnDeath = true
-        humanoid.MaxHealth = 100
-        humanoid.Health = 100
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
-    end)
-end
-
--- ============================================================
--- ФУНКЦИЯ: ПЕРЕХВАТ УРОНА
--- ============================================================
-local function setupGodMode()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then return end
-
-    if healthConnection then healthConnection:Disconnect() end
-
-    healthConnection = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-        if godActive then
-            if humanoid.Health < humanoid.MaxHealth then
-                humanoid.Health = humanoid.MaxHealth
-                if humanoid.Health < humanoid.MaxHealth * 0.5 then
-                    activateShield()
-                end
-            end
-        end
-    end)
-
-    local mt = getrawmetatable(humanoid)
-    if mt then
-        local oldIndex = mt.__index
-        mt.__index = function(self, key)
-            if key == "TakeDamage" then
-                return function(self, damage)
-                    if godActive then
-                        if cloneCharacter then
-                            local cloneHumanoid = cloneCharacter:FindFirstChild("Humanoid")
-                            if cloneHumanoid then
-                                cloneHumanoid.Health = cloneHumanoid.Health - damage
-                            end
-                        end
-                        activateShield()
-                        return
-                    end
-                    return oldIndex(self, key)(self, damage)
-                end
-            end
-            return oldIndex(self, key)
-        end
-    end
-end
-
--- ============================================================
--- ФУНКЦИЯ: НЕВИДИМОСТЬ (скрывает настоящего игрока, оставляя клона)
--- ============================================================
-local function setGhost(state)
-    local char = LocalPlayer.Character
-    if not char then return end
-
-    if state then
-        createGhostClone()
-
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 1
-                part.CanCollide = false
-                part.LocalTransparencyModifier = 1
-            end
-        end
-        local nameDisplay = char:FindFirstChild("NameDisplay")
-        if nameDisplay then nameDisplay.Enabled = false end
-
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = CFrame.new(0, -9999, 0)
-        end
-
-        local humanoid = char:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = true
-            humanoid.WalkSpeed = 0
-        end
-    else
-        if cloneCharacter then
-            cloneCharacter:Destroy()
-            cloneCharacter = nil
-        end
-
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0
-                part.CanCollide = true
-                part.LocalTransparencyModifier = 0
-            end
-        end
-        local nameDisplay = char:FindFirstChild("NameDisplay")
-        if nameDisplay then nameDisplay.Enabled = true end
-
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = CFrame.new(0, 10, 0)
-        end
-
-        local humanoid = char:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = false
-            humanoid.WalkSpeed = 16
-        end
-    end
-end
-
--- ============================================================
--- ФУНКЦИЯ: СПАМ ПАКЕТОВ ДЛЯ ПЕРЕГРУЗКИ АНТИЧИТА
--- ============================================================
-local function spamPackets()
-    local remote = Instance.new("RemoteEvent")
-    remote.Name = "FakePacket"
-    remote.Parent = ReplicatedStorage
-
-    spawn(function()
-        while true do
-            pcall(function()
-                remote:FireServer("Ping", math.random(1, 999999))
-            end)
-            task.wait(0.001)
-        end
-    end)
-end
-
--- ============================================================
--- ФУНКЦИЯ: ТОГГЛЫ (ОБЪЯВЛЕНЫ ПЕРЕД GUI)
--- ============================================================
-function toggleGhost()
-    ghostActive = not ghostActive
-    if btnGhost then btnGhost.BackgroundColor3 = ghostActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60) end
-    setGhost(ghostActive)
-    if ghostActive then
-        spamPackets()
-    end
-end
-
-function toggleGod()
-    godActive = not godActive
-    if btnGod then btnGod.BackgroundColor3 = godActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60) end
-    if godActive then
-        setupGodMode()
-        if godLoopConnection then godLoopConnection:Disconnect() end
-        godLoopConnection = RunService.Heartbeat:Connect(function()
-            if not godActive then
-                if godLoopConnection then godLoopConnection:Disconnect() end
-                return
-            end
-            local char = LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChild("Humanoid")
-                if humanoid then
-                    humanoid.Health = 9e9
-                    humanoid.MaxHealth = 9e9
-                    humanoid.BreakJointsOnDeath = false
-                end
-            end
-        end)
-    else
-        if godLoopConnection then godLoopConnection:Disconnect() end
-        if healthConnection then healthConnection:Disconnect() end
-    end
-end
-
--- ============================================================
--- GUI (СОЗДАЁТСЯ ПОСЛЕ ОБЪЯВЛЕНИЯ ВСЕХ ФУНКЦИЙ)
+-- GUI
 -- ============================================================
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "UltimateGui"
+screenGui.Name = "TrollGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer.PlayerGui
 
@@ -285,13 +20,13 @@ icon.Size = UDim2.new(0, 55, 0, 55)
 icon.Position = UDim2.new(0, 10, 0, 10)
 icon.BackgroundColor3 = Color3.fromRGB(25,25,35)
 icon.BorderSizePixel = 0
-icon.Text = "☠️"
+icon.Text = "🎯"
 icon.TextScaled = true
-icon.TextColor3 = Color3.fromRGB(255,50,50)
+icon.TextColor3 = Color3.fromRGB(255,100,50)
 icon.Parent = screenGui
 
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 220, 0, 150)
+menu.Size = UDim2.new(0, 230, 0, 400)
 menu.Position = UDim2.new(0, 75, 0, 10)
 menu.BackgroundColor3 = Color3.fromRGB(18,18,28)
 menu.BorderSizePixel = 0
@@ -313,30 +48,11 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1,0,0,30)
 title.Position = UDim2.new(0,0,0,5)
 title.BackgroundTransparency = 1
-title.Text = "☠️ ULTIMATE MOD"
-title.TextColor3 = Color3.fromRGB(255,50,50)
+title.Text = "🎯 ТРОЛЛЬ v3.0"
+title.TextColor3 = Color3.fromRGB(255,100,50)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = menu
-
-local function makeBtn(text, y, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9,0,0,32)
-    btn.Position = UDim2.new(0.05,0,0,y)
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
-    btn.BorderSizePixel = 0
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(200,200,220)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    btn.Parent = menu
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
--- Теперь кнопки используют функции, которые уже объявлены
-local btnGhost = makeBtn("👻 Ghost Mode", 40, toggleGhost)
-local btnGod = makeBtn("🛡️ God Mode", 80, toggleGod)
 
 icon.MouseButton1Click:Connect(function()
     menu.Visible = not menu.Visible
@@ -347,22 +63,218 @@ close.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================
--- АВТОМАТИЧЕСКОЕ ПРИМЕНЕНИЕ ПРИ РЕСПАВНЕ
+-- СПИСОК ИГРОКОВ
 -- ============================================================
-LocalPlayer.CharacterAdded:Connect(function(char)
-    char:WaitForChild("Humanoid")
-    task.wait(0.1)
-    if ghostActive then
-        setGhost(true)
+local playerList = Instance.new("ScrollingFrame")
+playerList.Size = UDim2.new(1, -10, 0, 180)
+playerList.Position = UDim2.new(0, 5, 0, 40)
+playerList.BackgroundColor3 = Color3.fromRGB(30,30,45)
+playerList.BorderSizePixel = 0
+playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerList.ScrollBarThickness = 4
+playerList.Parent = menu
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.Name
+listLayout.Padding = UDim.new(0, 4)
+listLayout.Parent = playerList
+
+-- ============================================================
+-- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+-- ============================================================
+local selectedTarget = nil
+local savedPosition = nil
+local savedCFrame = nil
+local savedCameraCFrame = nil
+local playerButtons = {}
+local selectedButton = nil
+
+-- ============================================================
+-- ФУНКЦИЯ: ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ
+-- ============================================================
+local function updatePlayerList()
+    for _, child in ipairs(playerList:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
     end
-    if godActive then
-        setupGodMode()
+    playerButtons = {}
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, -4, 0, 30)
+            b.Text = plr.Name
+            b.BackgroundColor3 = Color3.fromRGB(40,40,60)
+            b.BorderSizePixel = 0
+            b.TextColor3 = Color3.fromRGB(200,200,220)
+            b.Font = Enum.Font.Gotham
+            b.TextSize = 14
+            b.TextXAlignment = Enum.TextXAlignment.Left
+            b.Parent = playerList
+
+            -- Подсветка, если этот игрок выбран
+            if selectedTarget == plr then
+                b.BackgroundColor3 = Color3.fromRGB(0,100,200)
+                selectedButton = b
+            end
+
+            b.MouseButton1Click:Connect(function()
+                -- Снимаем подсветку со старого
+                if selectedButton then
+                    selectedButton.BackgroundColor3 = Color3.fromRGB(40,40,60)
+                end
+                -- Выбираем нового
+                selectedTarget = plr
+                b.BackgroundColor3 = Color3.fromRGB(0,100,200)
+                selectedButton = b
+                print("✅ Выбран: " .. plr.Name)
+            end)
+
+            playerButtons[plr] = b
+        end
     end
+
+    local count = #playerList:GetChildren() - 1
+    playerList.CanvasSize = UDim2.new(0, 0, 0, count * 34 + 10)
+end
+
+-- ============================================================
+-- ФУНКЦИЯ: ВСТАТЬ ЗА СПИНУ ВЫБРАННОГО ИГРОКА
+-- ============================================================
+local function teleportBehind()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    if not selectedTarget then
+        print("❌ Сначала выбери игрока в списке!")
+        return
+    end
+
+    local targetChar = selectedTarget.Character
+    if not targetChar then
+        print("❌ Игрок " .. selectedTarget.Name .. " не в игре или мёртв")
+        return
+    end
+
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then return end
+
+    -- Сохраняем текущую позицию
+    savedPosition = root.Position
+    savedCFrame = root.CFrame
+    savedCameraCFrame = Camera.CFrame
+
+    -- Направление от цели к нам
+    local dir = (root.Position - targetRoot.Position).Unit
+    -- Встаём за спиной (4 студии от хитбокса)
+    local behindPos = targetRoot.Position + dir * 4
+
+    -- Телепорт
+    root.CFrame = CFrame.new(behindPos, targetRoot.Position)
+
+    -- Камера смотрит в спину жертвы
+    Camera.CFrame = CFrame.new(
+        behindPos + Vector3.new(0, 1.5, 0),
+        targetRoot.Position
+    )
+
+    print("✅ ТП к " .. selectedTarget.Name)
+end
+
+-- ============================================================
+-- ФУНКЦИЯ: ВЕРНУТЬСЯ
+-- ============================================================
+local function returnBack()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    if savedPosition then
+        root.CFrame = savedCFrame or CFrame.new(savedPosition)
+        if savedCameraCFrame then
+            Camera.CFrame = savedCameraCFrame
+        end
+        print("✅ Возврат")
+        savedPosition = nil
+        savedCFrame = nil
+        savedCameraCFrame = nil
+    else
+        print("❌ Нет сохранённой позиции")
+    end
+end
+
+-- ============================================================
+-- КНОПКИ ДЕЙСТВИЙ
+-- ============================================================
+local btnBehind = Instance.new("TextButton")
+btnBehind.Size = UDim2.new(0.9, 0, 0, 40)
+btnBehind.Position = UDim2.new(0.05, 0, 0, 230)
+btnBehind.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+btnBehind.BorderSizePixel = 0
+btnBehind.Text = "🎯 ТП ЗА СПИНУ"
+btnBehind.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnBehind.Font = Enum.Font.GothamBold
+btnBehind.TextSize = 15
+btnBehind.Parent = menu
+btnBehind.MouseButton1Click:Connect(teleportBehind)
+
+local btnReturn = Instance.new("TextButton")
+btnReturn.Size = UDim2.new(0.9, 0, 0, 40)
+btnReturn.Position = UDim2.new(0.05, 0, 0, 275)
+btnReturn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+btnReturn.BorderSizePixel = 0
+btnReturn.Text = "↩️ ВЕРНУТЬСЯ"
+btnReturn.TextColor3 = Color3.fromRGB(255, 255, 255)
+btnReturn.Font = Enum.Font.GothamBold
+btnReturn.TextSize = 15
+btnReturn.Parent = menu
+btnReturn.MouseButton1Click:Connect(returnBack)
+
+local btnClear = Instance.new("TextButton")
+btnClear.Size = UDim2.new(0.9, 0, 0, 30)
+btnClear.Position = UDim2.new(0.05, 0, 0, 320)
+btnClear.BackgroundColor3 = Color3.fromRGB(60,60,80)
+btnClear.BorderSizePixel = 0
+btnClear.Text = "🔄 СБРОСИТЬ ЦЕЛЬ"
+btnClear.TextColor3 = Color3.fromRGB(200,200,220)
+btnClear.Font = Enum.Font.Gotham
+btnClear.TextSize = 13
+btnClear.Parent = menu
+btnClear.MouseButton1Click:Connect(function()
+    if selectedButton then
+        selectedButton.BackgroundColor3 = Color3.fromRGB(40,40,60)
+        selectedButton = nil
+    end
+    selectedTarget = nil
+    savedPosition = nil
+    savedCFrame = nil
+    savedCameraCFrame = nil
+    print("✅ Цель сброшена")
+end)
+
+-- ============================================================
+-- ОБНОВЛЕНИЕ ПРИ ВХОДЕ/ВЫХОДЕ
+-- ============================================================
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(function(plr)
+    if selectedTarget == plr then
+        selectedTarget = nil
+        selectedButton = nil
+    end
+    updatePlayerList()
 end)
 
 -- ============================================================
 -- ИНИЦИАЛИЗАЦИЯ
 -- ============================================================
-print("☠️ ULTIMATE GHOST + GOD MODE v10.0 LOADED")
-print("🔥 ВКЛЮЧАЙ GHOST MODE - ТЫ СТАНЕШЬ НЕВИДИМЫМ, УРОН ИДЁТ НА КЛОНА")
-print("🛡️ GOD MODE ДАЁТ БЕССМЕРТИЕ И АКТИВИРУЕТ ЩИТ ПРИ УРОНЕ")
+updatePlayerList()
+
+print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.0 ЗАГРУЖЕН")
+print("📌 1. Выбери игрока в списке")
+print("📌 2. Нажми ТП ЗА СПИНУ")
+print("📌 3. Ударь и нажми ВЕРНУТЬСЯ")
+print("📌 Цель сохраняется, пока не выберешь нового")
