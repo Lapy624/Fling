@@ -1,0 +1,255 @@
+-- Fling v2.0 (Unique + Classic)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+
+-- GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlingGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer.PlayerGui
+
+-- Main Fling Button
+local flingBtn = Instance.new("TextButton")
+flingBtn.Size = UDim2.new(0, 100, 0, 45)
+flingBtn.Position = UDim2.new(0, 10, 0, 70)
+flingBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+flingBtn.BorderSizePixel = 0
+flingBtn.Text = "🔥 FLING"
+flingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+flingBtn.Font = Enum.Font.GothamBold
+flingBtn.TextSize = 18
+flingBtn.Parent = screenGui
+local flingCorner = Instance.new("UICorner")
+flingCorner.CornerRadius = UDim.new(0, 8)
+flingCorner.Parent = flingBtn
+
+-- Mode Toggle Button
+local modeBtn = Instance.new("TextButton")
+modeBtn.Size = UDim2.new(0, 100, 0, 25)
+modeBtn.Position = UDim2.new(0, 10, 0, 120)
+modeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+modeBtn.BorderSizePixel = 0
+modeBtn.Text = "Mode: UNIQUE"
+modeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+modeBtn.Font = Enum.Font.Gotham
+modeBtn.TextSize = 12
+modeBtn.Parent = screenGui
+local modeCorner = Instance.new("UICorner")
+modeCorner.CornerRadius = UDim.new(0, 6)
+modeCorner.Parent = modeBtn
+
+-- Power Slider
+local powerLabel = Instance.new("TextLabel")
+powerLabel.Size = UDim2.new(0, 100, 0, 20)
+powerLabel.Position = UDim2.new(0, 10, 0, 150)
+powerLabel.BackgroundTransparency = 1
+powerLabel.Text = "Power: 150"
+powerLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+powerLabel.Font = Enum.Font.Gotham
+powerLabel.TextSize = 14
+powerLabel.TextXAlignment = Enum.TextXAlignment.Left
+powerLabel.Parent = screenGui
+
+local powerSlider = Instance.new("TextButton")
+powerSlider.Size = UDim2.new(0, 100, 0, 6)
+powerSlider.Position = UDim2.new(0, 10, 0, 170)
+powerSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+powerSlider.BorderSizePixel = 0
+powerSlider.Text = ""
+powerSlider.Parent = screenGui
+local sliderCorner = Instance.new("UICorner")
+sliderCorner.CornerRadius = UDim.new(1, 0)
+sliderCorner.Parent = powerSlider
+
+local powerIndicator = Instance.new("TextButton")
+powerIndicator.Size = UDim2.new(0, 12, 0, 12)
+powerIndicator.Position = UDim2.new(0, 0, 0, -3)
+powerIndicator.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
+powerIndicator.BorderSizePixel = 0
+powerIndicator.Text = ""
+powerIndicator.Parent = powerSlider
+local indCorner = Instance.new("UICorner")
+indCorner.CornerRadius = UDim.new(1, 0)
+indCorner.Parent = powerIndicator
+
+-- STATE
+local flingPower = 150
+local flingMode = "UNIQUE" -- "UNIQUE" or "CLASSIC"
+local isFlinging = false
+
+-- Обновление отображения
+local function updatePowerDisplay()
+    powerLabel.Text = "Power: " .. math.floor(flingPower)
+end
+
+local function updateModeDisplay()
+    modeBtn.Text = "Mode: " .. flingMode
+    if flingMode == "UNIQUE" then
+        modeBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
+        flingBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+        flingBtn.Text = "🔥 FLING"
+    else
+        modeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        flingBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+        flingBtn.Text = "⚡ FLING"
+    end
+end
+
+-- Слайдер
+local function setupSlider(slider, indicator, minVal, maxVal, callback)
+    local dragging = false
+
+    local function update(posX)
+        local rel = math.clamp((posX - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+        local val = minVal + (maxVal - minVal) * rel
+        callback(math.floor(val))
+        indicator.Position = UDim2.new(rel, -6, 0, -3)
+    end
+
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            update(input.Position.X)
+        end
+    end)
+
+    slider.InputEnded:Connect(function()
+        dragging = false
+    end)
+
+    slider.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            update(input.Position.X)
+        end
+    end)
+
+    slider.MouseLeave:Connect(function()
+        dragging = false
+    end)
+end
+
+setupSlider(powerSlider, powerIndicator, 50, 500, function(val)
+    flingPower = val
+    updatePowerDisplay()
+end)
+
+-- Переключение режима
+modeBtn.MouseButton1Click:Connect(function()
+    if flingMode == "UNIQUE" then
+        flingMode = "CLASSIC"
+    else
+        flingMode = "UNIQUE"
+    end
+    updateModeDisplay()
+end)
+
+-- ========== УНИКАЛЬНЫЙ ФЛИНГ (рывок + вихрь + подброс) ==========
+local function uniqueFling()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not root or not humanoid then return end
+
+    local direction = Camera.CFrame.LookVector
+    -- Вихревая составляющая (вращение)
+    local randomAngle = math.random(0, 360)
+    local upDir = Vector3.new(0, 1, 0)
+    local rightDir = direction:Cross(upDir).Unit
+    local upForce = Vector3.new(0, 1, 0) * (flingPower * 0.7)
+    local forwardForce = direction * flingPower * 1.2
+    local sideForce = rightDir * math.sin(randomAngle) * flingPower * 0.4
+
+    -- Итоговый импульс
+    local finalForce = forwardForce + upForce + sideForce
+
+    -- Применяем силу
+    root.Velocity = finalForce
+
+    -- Визуальный эффект: вращение персонажа (для красоты)
+    local tween = TweenService:Create(root, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {CFrame = root.CFrame * CFrame.Angles(0, math.rad(360), 0)})
+    tween:Play()
+
+    -- Дополнительный импульс через BodyVelocity (для гарантии)
+    task.wait(0.05)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Velocity = finalForce
+    bv.Parent = root
+    task.wait(0.3)
+    bv:Destroy()
+end
+
+-- ========== СТАНДАРТНЫЙ ФЛИНГ (как у большинства) ==========
+local function classicFling()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local direction = Camera.CFrame.LookVector + Vector3.new(0, 0.3, 0)
+    local force = direction.Unit * flingPower * 1.5
+
+    -- BodyVelocity (основной метод)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Velocity = force
+    bv.Parent = root
+
+    -- Прямой импульс
+    root.Velocity = force
+
+    -- Дополнительный BodyThrust
+    local bt = Instance.new("BodyThrust")
+    bt.Force = force * 500
+    bt.Location = root.Position
+    bt.Parent = root
+
+    task.wait(0.5)
+    bv:Destroy()
+    bt:Destroy()
+end
+
+-- ========== ОСНОВНАЯ ФУНКЦИЯ FLING ==========
+local function doFling()
+    if isFlinging then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    isFlinging = true
+    flingBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    flingBtn.Text = "⏳ FLING..."
+
+    if flingMode == "UNIQUE" then
+        uniqueFling()
+    else
+        classicFling()
+    end
+
+    isFlinging = false
+    updateModeDisplay() -- возвращаем цвет кнопки
+end
+
+-- Нажатие на кнопку
+flingBtn.MouseButton1Click:Connect(doFling)
+
+-- Горячая клавиша F
+UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.KeyCode == Enum.KeyCode.F then
+        doFling()
+    end
+end)
+
+-- Защита
+LocalPlayer.CharacterAdded:Connect(function()
+    isFlinging = false
+    updateModeDisplay()
+end)
+
+-- Инициализация
+updatePowerDisplay()
+updateModeDisplay()
