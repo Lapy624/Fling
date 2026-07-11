@@ -1,5 +1,5 @@
 -- ============================================================
--- ТРОЛЛЬ-ТЕЛЕПОРТ v3.3 (ВЫБОР ПО НИКНЕЙМУ + ПЕРЕТАСКИВАНИЕ)
+-- ТРОЛЛЬ-ТЕЛЕПОРТ v3.2 (ПЕРЕТАСКИВАЕМОЕ МЕНЮ + ИКОНКА)
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -66,6 +66,7 @@ menu.BorderSizePixel = 0
 menu.Visible = false
 menu.Parent = screenGui
 
+-- DRAG ДЛЯ МЕНЮ (перетаскивание за заголовок)
 local menuDragging = false
 local menuDragStart = nil
 local menuStartPos = nil
@@ -74,12 +75,13 @@ local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 30)
 title.Position = UDim2.new(0, 0, 0, 5)
 title.BackgroundTransparency = 1
-title.Text = "🎯 ТРОЛЛЬ v3.3"
+title.Text = "🎯 ТРОЛЛЬ v3.2"
 title.TextColor3 = Color3.fromRGB(255,100,50)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
 title.Parent = menu
 
+-- Добавляем драг на заголовок
 title.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         menuDragging = true
@@ -126,7 +128,7 @@ close.MouseButton1Click:Connect(function()
 end)
 
 -- ============================================================
--- СПИСОК ИГРОКОВ (С ОТОБРАЖЕНИЕМ НИКНЕЙМА)
+-- СПИСОК ИГРОКОВ
 -- ============================================================
 local playerList = Instance.new("ScrollingFrame")
 playerList.Size = UDim2.new(1, -10, 0, 180)
@@ -153,7 +155,7 @@ local playerButtons = {}
 local selectedButton = nil
 
 -- ============================================================
--- ФУНКЦИЯ: ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ (ПО НИКНЕЙМУ)
+-- ФУНКЦИЯ: ОБНОВЛЕНИЕ СПИСКА ИГРОКОВ
 -- ============================================================
 local function updatePlayerList()
     for _, child in ipairs(playerList:GetChildren()) do
@@ -167,8 +169,7 @@ local function updatePlayerList()
         if plr ~= LocalPlayer then
             local b = Instance.new("TextButton")
             b.Size = UDim2.new(1, -4, 0, 30)
-            -- ПОКАЗЫВАЕМ НИКНЕЙМ (DisplayName), а не логин
-            b.Text = plr.DisplayName
+            b.Text = plr.Name
             b.BackgroundColor3 = Color3.fromRGB(40,40,60)
             b.BorderSizePixel = 0
             b.TextColor3 = Color3.fromRGB(200,200,220)
@@ -176,8 +177,6 @@ local function updatePlayerList()
             b.TextSize = 14
             b.TextXAlignment = Enum.TextXAlignment.Left
             b.Parent = playerList
-            -- Сохраняем самого игрока в кнопку
-            b:SetAttribute("Player", plr)
 
             if selectedTarget == plr then
                 b.BackgroundColor3 = Color3.fromRGB(0,100,200)
@@ -188,13 +187,10 @@ local function updatePlayerList()
                 if selectedButton then
                     selectedButton.BackgroundColor3 = Color3.fromRGB(40,40,60)
                 end
-                local clickedPlr = b:GetAttribute("Player")
-                if clickedPlr then
-                    selectedTarget = clickedPlr
-                    b.BackgroundColor3 = Color3.fromRGB(0,100,200)
-                    selectedButton = b
-                    print("✅ Выбран: " .. clickedPlr.DisplayName .. " (" .. clickedPlr.Name .. ")")
-                end
+                selectedTarget = plr
+                b.BackgroundColor3 = Color3.fromRGB(0,100,200)
+                selectedButton = b
+                print("✅ Выбран: " .. plr.Name)
             end)
 
             playerButtons[plr] = b
@@ -221,7 +217,7 @@ local function teleportBehind()
 
     local targetChar = selectedTarget.Character
     if not targetChar then
-        print("❌ Игрок " .. selectedTarget.DisplayName .. " не в игре или мёртв")
+        print("❌ Игрок " .. selectedTarget.Name .. " не в игре или мёртв")
         return
     end
 
@@ -242,7 +238,7 @@ local function teleportBehind()
         targetRoot.Position
     )
 
-    print("✅ ТП к " .. selectedTarget.DisplayName)
+    print("✅ ТП к " .. selectedTarget.Name)
 end
 
 -- ============================================================
@@ -334,9 +330,9 @@ end)
 -- ============================================================
 updatePlayerList()
 
-print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.3 ЗАГРУЖЕН")
-print("📌 Теперь выбор по НИКНЕЙМУ (DisplayName), а не по логину")
-print("📌 Иконку и меню можно перетаскивать")
-print("📌 1. Выбери игрока по нику в списке")
+print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v3.2 ЗАГРУЖЕН")
+print("📌 Иконку можно перетаскивать пальцем")
+print("📌 Меню можно перетаскивать за заголовок '🎯 ТРОЛЛЬ v3.2'")
+print("📌 1. Выбери игрока в списке")
 print("📌 2. Нажми ТП ЗА СПИНУ")
 print("📌 3. Ударь и нажми ВЕРНУТЬСЯ")
