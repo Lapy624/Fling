@@ -1,142 +1,371 @@
--- INVISIBLE + GOD MODE v3.0 (DRAGGABLE ICON)
+-- ============================================================
+-- ULTIMATE GHOST + GOD MODE v10.0 (PART 1/2)
+-- ВСТАВЛЯЙ В DELTA
+-- ============================================================
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
+-- ===== GUI =====
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "IGui"
+screenGui.Name = "UltimateGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer.PlayerGui
 
--- ===== ИКОНКА (ПЕРЕТАСКИВАЕМАЯ) =====
 local icon = Instance.new("TextButton")
 icon.Size = UDim2.new(0, 55, 0, 55)
 icon.Position = UDim2.new(0, 10, 0, 10)
 icon.BackgroundColor3 = Color3.fromRGB(25,25,35)
 icon.BorderSizePixel = 0
-icon.Text = "👻"
+icon.Text = "☠️"
 icon.TextScaled = true
-icon.TextColor3 = Color3.fromRGB(0,255,200)
+icon.TextColor3 = Color3.fromRGB(255,50,50)
 icon.Parent = screenGui
 
-local dragging = false
-local dragStartPos = nil
-local iconStartPos = nil
-
-icon.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStartPos = input.Position
-        iconStartPos = icon.Position
-    end
-end)
-
-icon.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-icon.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
-        local delta = input.Position - dragStartPos
-        icon.Position = UDim2.new(
-            iconStartPos.X.Scale,
-            iconStartPos.X.Offset + delta.X,
-            iconStartPos.Y.Scale,
-            iconStartPos.Y.Offset + delta.Y
-        )
-    end
-end)
-
--- ===== МЕНЮ =====
 local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 180, 0, 100)
-menu.Position = UDim2.new(0, 70, 0, 10)
-menu.BackgroundColor3 = Color3.fromRGB(20,20,35)
+menu.Size = UDim2.new(0, 220, 0, 150)
+menu.Position = UDim2.new(0, 75, 0, 10)
+menu.BackgroundColor3 = Color3.fromRGB(18,18,28)
 menu.BorderSizePixel = 0
 menu.Visible = false
 menu.Parent = screenGui
 
-local btn = Instance.new("TextButton")
-btn.Size = UDim2.new(0.9,0,0,35)
-btn.Position = UDim2.new(0.05,0,0,10)
-btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
-btn.BorderSizePixel = 0
-btn.Text = "👻 INVISIBLE"
-btn.TextColor3 = Color3.fromRGB(200,200,220)
-btn.Font = Enum.Font.Gotham
-btn.TextSize = 14
-btn.Parent = menu
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0,25,0,25)
+close.Position = UDim2.new(1,-30,0,5)
+close.BackgroundColor3 = Color3.fromRGB(60,60,80)
+close.BorderSizePixel = 0
+close.Text = "✕"
+close.TextColor3 = Color3.fromRGB(200,200,220)
+close.Font = Enum.Font.Gotham
+close.TextSize = 14
+close.Parent = menu
 
-local btn2 = Instance.new("TextButton")
-btn2.Size = UDim2.new(0.9,0,0,35)
-btn2.Position = UDim2.new(0.05,0,0,50)
-btn2.BackgroundColor3 = Color3.fromRGB(40,40,60)
-btn2.BorderSizePixel = 0
-btn2.Text = "🛡️ GOD MODE"
-btn2.TextColor3 = Color3.fromRGB(200,200,220)
-btn2.Font = Enum.Font.Gotham
-btn2.TextSize = 14
-btn2.Parent = menu
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.Position = UDim2.new(0,0,0,5)
+title.BackgroundTransparency = 1
+title.Text = "☠️ ULTIMATE MOD"
+title.TextColor3 = Color3.fromRGB(255,50,50)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = menu
+
+local function makeBtn(text, y, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9,0,0,32)
+    btn.Position = UDim2.new(0.05,0,0,y)
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
+    btn.BorderSizePixel = 0
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(200,200,220)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.Parent = menu
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local btnGhost = makeBtn("👻 Ghost Mode", 40, toggleGhost)
+local btnGod = makeBtn("🛡️ God Mode", 80, toggleGod)
 
 icon.MouseButton1Click:Connect(function()
     menu.Visible = not menu.Visible
 end)
 
--- ===== СОСТОЯНИЯ =====
-local invisible = false
-local god = false
+close.MouseButton1Click:Connect(function()
+    menu.Visible = false
+end)
 
--- ===== ПРИМЕНЕНИЕ НЕВИДИМОСТИ =====
-local function applyInvisible(char)
+-- ============================================================
+-- ГЛОБАЛЬНЫЕ СОСТОЯНИЯ
+-- ============================================================
+local ghostActive = false
+local godActive = false
+local cloneCharacter = nil
+local shieldActive = false
+local shieldTimer = nil
+local healthConnection = nil
+local godLoopConnection = nil
+
+-- ============================================================
+-- ФУНКЦИЯ: СОЗДАНИЕ КЛОНА-ПРИЗРАКА
+-- ============================================================
+local function createGhostClone()
+    local char = LocalPlayer.Character
     if not char then return end
-    for _, part in ipairs(char:GetDescendants()) do
+    local root = char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    cloneCharacter = char:Clone()
+    cloneCharacter.Name = "GhostClone"
+    cloneCharacter.Parent = Workspace
+
+    for _, part in ipairs(cloneCharacter:GetDescendants()) do
         if part:IsA("BasePart") then
-            part.Transparency = invisible and 1 or 0
-            part.CanCollide = not invisible
+            part.Transparency = 0.3
+            part.CanCollide = false
+            part.Material = Enum.Material.Neon
+            part.Color = Color3.fromRGB(0, 200, 255)
         end
     end
+
+    local humanoid = cloneCharacter:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+        humanoid.WalkSpeed = 0
+        humanoid.JumpPower = 0
+        humanoid.MaxHealth = 9e9
+        humanoid.Health = 9e9
+        humanoid.BreakJointsOnDeath = false
+    end
+
+    local cloneRoot = cloneCharacter:FindFirstChild("HumanoidRootPart")
+    if cloneRoot then
+        cloneRoot.CFrame = root.CFrame
+    end
+
+    local function onCloneHealthChange()
+        if not cloneCharacter or not cloneCharacter.Parent then return end
+        local h = cloneCharacter:FindFirstChild("Humanoid")
+        if h and h.Health < h.MaxHealth then
+            h.Health = h.MaxHealth
+        end
+    end
+    if humanoid then
+        humanoid:GetPropertyChangedSignal("Health"):Connect(onCloneHealthChange)
+    end
+
+    return cloneCharacter
 end
 
--- ===== ПРИМЕНЕНИЕ GOD MODE =====
-local function applyGod(char)
+-- ============================================================
+-- ФУНКЦИЯ: ЩИТ ПРИ СМЕРТИ
+-- ============================================================
+local function activateShield()
+    if shieldActive then return end
+    shieldActive = true
+    local char = LocalPlayer.Character
     if not char then return end
     local humanoid = char:FindFirstChild("Humanoid")
-    if humanoid then
-        if god then
-            humanoid.MaxHealth = 1e9
-            humanoid.Health = 1e9
-            humanoid.BreakJointsOnDeath = false
-        else
-            humanoid.MaxHealth = 100
-            humanoid.Health = 100
-            humanoid.BreakJointsOnDeath = true
+    if not humanoid then return end
+
+    humanoid.BreakJointsOnDeath = false
+    humanoid.MaxHealth = 9e9
+    humanoid.Health = 9e9
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Material = Enum.Material.Neon
+            part.Color = Color3.fromRGB(0, 255, 255)
+        end
+    end
+
+    if shieldTimer then shieldTimer:Disconnect() end
+    shieldTimer = task.delay(5, function()
+        shieldActive = false
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Material = Enum.Material.SmoothPlastic
+                part.Color = Color3.fromRGB(255, 255, 255)
+            end
+        end
+        humanoid.BreakJointsOnDeath = true
+        humanoid.MaxHealth = 100
+        humanoid.Health = 100
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+    end)
+end
+
+-- ============================================================
+-- ФУНКЦИЯ: ПЕРЕХВАТ УРОНА
+-- ============================================================
+local function setupGodMode()
+    local char = LocalPlayer.Character
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not humanoid then return end
+
+    if healthConnection then healthConnection:Disconnect() end
+
+    healthConnection = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        if godActive then
+            if humanoid.Health < humanoid.MaxHealth then
+                humanoid.Health = humanoid.MaxHealth
+                if humanoid.Health < humanoid.MaxHealth * 0.5 then
+                    activateShield()
+                end
+            end
+        end
+    end)
+
+    local mt = getrawmetatable(humanoid)
+    if mt then
+        local oldIndex = mt.__index
+        mt.__index = function(self, key)
+            if key == "TakeDamage" then
+                return function(self, damage)
+                    if godActive then
+                        if cloneCharacter then
+                            local cloneHumanoid = cloneCharacter:FindFirstChild("Humanoid")
+                            if cloneHumanoid then
+                                cloneHumanoid.Health = cloneHumanoid.Health - damage
+                            end
+                        end
+                        activateShield()
+                        return
+                    end
+                    return oldIndex(self, key)(self, damage)
+                end
+            end
+            return oldIndex(self, key)
         end
     end
 end
 
--- ===== ПРИ РЕСПАВНЕ =====
+-- ============================================================
+-- ULTIMATE GHOST + GOD MODE v10.0 (PART 2/2)
+-- ВСТАВЛЯЙ СРАЗУ ЗА ЧАСТЬЮ 1
+-- ============================================================
+
+-- ============================================================
+-- ФУНКЦИЯ: НЕВИДИМОСТЬ (скрывает настоящего игрока, оставляя клона)
+-- ============================================================
+local function setGhost(state)
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    if state then
+        createGhostClone()
+
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 1
+                part.CanCollide = false
+                part.LocalTransparencyModifier = 1
+            end
+        end
+        local nameDisplay = char:FindFirstChild("NameDisplay")
+        if nameDisplay then nameDisplay.Enabled = false end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = CFrame.new(0, -9999, 0)
+        end
+
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = true
+            humanoid.WalkSpeed = 0
+        end
+    else
+        if cloneCharacter then
+            cloneCharacter:Destroy()
+            cloneCharacter = nil
+        end
+
+        for _, part in ipairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+                part.CanCollide = true
+                part.LocalTransparencyModifier = 0
+            end
+        end
+        local nameDisplay = char:FindFirstChild("NameDisplay")
+        if nameDisplay then nameDisplay.Enabled = true end
+
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = CFrame.new(0, 10, 0)
+        end
+
+        local humanoid = char:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+            humanoid.WalkSpeed = 16
+        end
+    end
+end
+
+-- ============================================================
+-- ФУНКЦИЯ: СПАМ ПАКЕТОВ ДЛЯ ПЕРЕГРУЗКИ АНТИЧИТА
+-- ============================================================
+local function spamPackets()
+    local remote = Instance.new("RemoteEvent")
+    remote.Name = "FakePacket"
+    remote.Parent = ReplicatedStorage
+
+    spawn(function()
+        while true do
+            pcall(function()
+                remote:FireServer("Ping", math.random(1, 999999))
+            end)
+            task.wait(0.001)
+        end
+    end)
+end
+
+-- ============================================================
+-- ФУНКЦИЯ: ТОГГЛЫ
+-- ============================================================
+function toggleGhost()
+    ghostActive = not ghostActive
+    btnGhost.BackgroundColor3 = ghostActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
+    setGhost(ghostActive)
+    if ghostActive then
+        spamPackets()
+    end
+end
+
+function toggleGod()
+    godActive = not godActive
+    btnGod.BackgroundColor3 = godActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
+    if godActive then
+        setupGodMode()
+        if godLoopConnection then godLoopConnection:Disconnect() end
+        godLoopConnection = RunService.Heartbeat:Connect(function()
+            if not godActive then
+                if godLoopConnection then godLoopConnection:Disconnect() end
+                return
+            end
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid.Health = 9e9
+                    humanoid.MaxHealth = 9e9
+                    humanoid.BreakJointsOnDeath = false
+                end
+            end
+        end)
+    else
+        if godLoopConnection then godLoopConnection:Disconnect() end
+        if healthConnection then healthConnection:Disconnect() end
+    end
+end
+
+-- ============================================================
+-- АВТОМАТИЧЕСКОЕ ПРИМЕНЕНИЕ ПРИ РЕСПАВНЕ
+-- ============================================================
 LocalPlayer.CharacterAdded:Connect(function(char)
     char:WaitForChild("Humanoid")
     task.wait(0.1)
-    applyInvisible(char)
-    applyGod(char)
+    if ghostActive then
+        setGhost(true)
+    end
+    if godActive then
+        setupGodMode()
+    end
 end)
 
--- ===== INVISIBLE TOGGLE =====
-btn.MouseButton1Click:Connect(function()
-    invisible = not invisible
-    btn.BackgroundColor3 = invisible and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
-    applyInvisible(LocalPlayer.Character)
-end)
-
--- ===== GOD MODE TOGGLE =====
-btn2.MouseButton1Click:Connect(function()
-    god = not god
-    btn2.BackgroundColor3 = god and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
-    applyGod(LocalPlayer.Character)
-end)
-
-print("👻 INVISIBLE + GOD MODE v3.0 LOADED")
+-- ============================================================
+-- ИНИЦИАЛИЗАЦИЯ
+-- ============================================================
+print("☠️ ULTIMATE GHOST + GOD MODE v10.0 LOADED")
+print("🔥 ВКЛЮЧАЙ GHOST MODE - ТЫ СТАНЕШЬ НЕВИДИМЫМ, УРОН ИДЁТ НА КЛОНА")
+print("🛡️ GOD MODE ДАЁТ БЕССМЕРТИЕ И АКТИВИРУЕТ ЩИТ ПРИ УРОНЕ")
