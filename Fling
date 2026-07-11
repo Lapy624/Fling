@@ -1,4 +1,4 @@
--- Fling v2.0 (Unique + Classic)
+-- Fling & Control Hub v4.1 (Full Fix)
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -11,198 +11,215 @@ screenGui.Name = "FlingGui"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer.PlayerGui
 
--- Main Fling Button
-local flingBtn = Instance.new("TextButton")
-flingBtn.Size = UDim2.new(0, 100, 0, 45)
-flingBtn.Position = UDim2.new(0, 10, 0, 70)
-flingBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-flingBtn.BorderSizePixel = 0
-flingBtn.Text = "🔥 FLING"
-flingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-flingBtn.Font = Enum.Font.GothamBold
-flingBtn.TextSize = 18
-flingBtn.Parent = screenGui
-local flingCorner = Instance.new("UICorner")
-flingCorner.CornerRadius = UDim.new(0, 8)
-flingCorner.Parent = flingBtn
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 210, 0, 430)
+mainFrame.Position = UDim2.new(0, 10, 0, 10)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+mainFrame.BorderSizePixel = 0
+mainFrame.Parent = screenGui
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 10)
+mainCorner.Parent = mainFrame
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = Color3.fromRGB(0, 200, 255)
+mainStroke.Thickness = 2
+mainStroke.Parent = mainFrame
 
--- Mode Toggle Button
-local modeBtn = Instance.new("TextButton")
-modeBtn.Size = UDim2.new(0, 100, 0, 25)
-modeBtn.Position = UDim2.new(0, 10, 0, 120)
-modeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-modeBtn.BorderSizePixel = 0
-modeBtn.Text = "Mode: UNIQUE"
-modeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-modeBtn.Font = Enum.Font.Gotham
-modeBtn.TextSize = 12
-modeBtn.Parent = screenGui
-local modeCorner = Instance.new("UICorner")
-modeCorner.CornerRadius = UDim.new(0, 6)
-modeCorner.Parent = modeBtn
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 5)
+title.BackgroundTransparency = 1
+title.Text = "🎯 FLING & CONTROL"
+title.TextColor3 = Color3.fromRGB(0, 200, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
+title.Parent = mainFrame
 
--- Power Slider
-local powerLabel = Instance.new("TextLabel")
-powerLabel.Size = UDim2.new(0, 100, 0, 20)
-powerLabel.Position = UDim2.new(0, 10, 0, 150)
-powerLabel.BackgroundTransparency = 1
-powerLabel.Text = "Power: 150"
-powerLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-powerLabel.Font = Enum.Font.Gotham
-powerLabel.TextSize = 14
-powerLabel.TextXAlignment = Enum.TextXAlignment.Left
-powerLabel.Parent = screenGui
+local playerList = Instance.new("ScrollingFrame")
+playerList.Size = UDim2.new(1, -10, 0, 130)
+playerList.Position = UDim2.new(0, 5, 0, 40)
+playerList.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
+playerList.BorderSizePixel = 0
+playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
+playerList.ScrollBarThickness = 4
+playerList.ScrollBarImageColor3 = Color3.fromRGB(0, 200, 255)
+playerList.Parent = mainFrame
+local listCorner = Instance.new("UICorner")
+listCorner.CornerRadius = UDim.new(0, 6)
+listCorner.Parent = playerList
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder = Enum.SortOrder.Name
+listLayout.Padding = UDim.new(0, 4)
+listLayout.Parent = playerList
 
-local powerSlider = Instance.new("TextButton")
-powerSlider.Size = UDim2.new(0, 100, 0, 6)
-powerSlider.Position = UDim2.new(0, 10, 0, 170)
-powerSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-powerSlider.BorderSizePixel = 0
-powerSlider.Text = ""
-powerSlider.Parent = screenGui
-local sliderCorner = Instance.new("UICorner")
-sliderCorner.CornerRadius = UDim.new(1, 0)
-sliderCorner.Parent = powerSlider
-
-local powerIndicator = Instance.new("TextButton")
-powerIndicator.Size = UDim2.new(0, 12, 0, 12)
-powerIndicator.Position = UDim2.new(0, 0, 0, -3)
-powerIndicator.BackgroundColor3 = Color3.fromRGB(0, 200, 255)
-powerIndicator.BorderSizePixel = 0
-powerIndicator.Text = ""
-powerIndicator.Parent = powerSlider
-local indCorner = Instance.new("UICorner")
-indCorner.CornerRadius = UDim.new(1, 0)
-indCorner.Parent = powerIndicator
-
--- STATE
-local flingPower = 150
-local flingMode = "UNIQUE" -- "UNIQUE" or "CLASSIC"
-local isFlinging = false
-
--- Обновление отображения
-local function updatePowerDisplay()
-    powerLabel.Text = "Power: " .. math.floor(flingPower)
+local modes = {"Мощный", "Вихрь", "Контроль"}
+local modeButtons = {}
+for i, name in ipairs(modes) do
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.28, 0, 0, 28)
+    btn.Position = UDim2.new(0.02 + (i-1) * 0.33, 0, 0, 180)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    btn.BorderSizePixel = 0
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 220)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 12
+    btn.Parent = mainFrame
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = btn
+    modeButtons[name] = btn
 end
 
-local function updateModeDisplay()
-    modeBtn.Text = "Mode: " .. flingMode
-    if flingMode == "UNIQUE" then
-        modeBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 150)
-        flingBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        flingBtn.Text = "🔥 FLING"
-    else
-        modeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-        flingBtn.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-        flingBtn.Text = "⚡ FLING"
-    end
-end
+local actionBtn = Instance.new("TextButton")
+actionBtn.Size = UDim2.new(0.9, 0, 0, 40)
+actionBtn.Position = UDim2.new(0.05, 0, 0, 220)
+actionBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+actionBtn.BorderSizePixel = 0
+actionBtn.Text = "💥 FLING"
+actionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+actionBtn.Font = Enum.Font.GothamBold
+actionBtn.TextSize = 16
+actionBtn.Parent = mainFrame
+local actCorner = Instance.new("UICorner")
+actCorner.CornerRadius = UDim.new(0, 6)
+actCorner.Parent = actionBtn
 
--- Слайдер
-local function setupSlider(slider, indicator, minVal, maxVal, callback)
-    local dragging = false
+local stopBtn = Instance.new("TextButton")
+stopBtn.Size = UDim2.new(0.9, 0, 0, 30)
+stopBtn.Position = UDim2.new(0.05, 0, 0, 270)
+stopBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+stopBtn.BorderSizePixel = 0
+stopBtn.Text = "⏹ STOP"
+stopBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+stopBtn.Font = Enum.Font.Gotham
+stopBtn.TextSize = 14
+stopBtn.Parent = mainFrame
+local stopCorner = Instance.new("UICorner")
+stopCorner.CornerRadius = UDim.new(0, 6)
+stopCorner.Parent = stopBtn
 
-    local function update(posX)
-        local rel = math.clamp((posX - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
-        local val = minVal + (maxVal - minVal) * rel
-        callback(math.floor(val))
-        indicator.Position = UDim2.new(rel, -6, 0, -3)
-    end
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -10, 0, 20)
+statusLabel.Position = UDim2.new(0, 5, 0, 310)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Готов"
+statusLabel.TextColor3 = Color3.fromRGB(150, 200, 150)
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 14
+statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+statusLabel.Parent = mainFrame
 
-    slider.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            update(input.Position.X)
-        end
-    end)
+-- ===== STATE =====
+local selectedPlayers = {}
+local currentMode = "Мощный"
+local isRunning = false
+local controlTarget = nil
+local controlConnections = {}
+local playerButtons = {}
 
-    slider.InputEnded:Connect(function()
-        dragging = false
-    end)
-
-    slider.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            update(input.Position.X)
-        end
-    end)
-
-    slider.MouseLeave:Connect(function()
-        dragging = false
-    end)
-end
-
-setupSlider(powerSlider, powerIndicator, 50, 500, function(val)
-    flingPower = val
-    updatePowerDisplay()
-end)
-
--- Переключение режима
-modeBtn.MouseButton1Click:Connect(function()
-    if flingMode == "UNIQUE" then
-        flingMode = "CLASSIC"
-    else
-        flingMode = "UNIQUE"
-    end
-    updateModeDisplay()
-end)
-
--- ========== УНИКАЛЬНЫЙ ФЛИНГ (рывок + вихрь + подброс) ==========
-local function uniqueFling()
+-- ===== SAFE GET LOCAL CHARACTER =====
+local function getLocalRoot()
     local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not root or not humanoid then return end
-
-    local direction = Camera.CFrame.LookVector
-    -- Вихревая составляющая (вращение)
-    local randomAngle = math.random(0, 360)
-    local upDir = Vector3.new(0, 1, 0)
-    local rightDir = direction:Cross(upDir).Unit
-    local upForce = Vector3.new(0, 1, 0) * (flingPower * 0.7)
-    local forwardForce = direction * flingPower * 1.2
-    local sideForce = rightDir * math.sin(randomAngle) * flingPower * 0.4
-
-    -- Итоговый импульс
-    local finalForce = forwardForce + upForce + sideForce
-
-    -- Применяем силу
-    root.Velocity = finalForce
-
-    -- Визуальный эффект: вращение персонажа (для красоты)
-    local tween = TweenService:Create(root, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {CFrame = root.CFrame * CFrame.Angles(0, math.rad(360), 0)})
-    tween:Play()
-
-    -- Дополнительный импульс через BodyVelocity (для гарантии)
-    task.wait(0.05)
-    local bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-    bv.Velocity = finalForce
-    bv.Parent = root
-    task.wait(0.3)
-    bv:Destroy()
+    if not char then return nil end
+    return char:FindFirstChild("HumanoidRootPart")
 end
 
--- ========== СТАНДАРТНЫЙ ФЛИНГ (как у большинства) ==========
-local function classicFling()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local root = char:FindFirstChild("HumanoidRootPart")
+-- ===== UPDATE PLAYER LIST =====
+local function updatePlayerList()
+    for _, child in ipairs(playerList:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    playerButtons = {}
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local b = Instance.new("TextButton")
+            b.Size = UDim2.new(1, -4, 0, 28)
+            b.Text = plr.Name
+            b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            b.BorderSizePixel = 0
+            b.TextColor3 = Color3.fromRGB(200, 200, 220)
+            b.Font = Enum.Font.Gotham
+            b.TextSize = 14
+            b.TextXAlignment = Enum.TextXAlignment.Left
+            b.Parent = playerList
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 4)
+            corner.Parent = b
+
+            if selectedPlayers[plr] then
+                b.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+            end
+
+            b.MouseButton1Click:Connect(function()
+                if selectedPlayers[plr] then
+                    selectedPlayers[plr] = nil
+                    b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                else
+                    selectedPlayers[plr] = true
+                    b.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+                end
+                updateStatus()
+            end)
+
+            playerButtons[plr] = b
+        end
+    end
+
+    local count = #playerList:GetChildren() - 1
+    playerList.CanvasSize = UDim2.new(0, 0, 0, count * 32 + 10)
+end
+
+-- ===== MODE HIGHLIGHT =====
+local function updateModeHighlight()
+    for name, btn in pairs(modeButtons) do
+        btn.BackgroundColor3 = (name == currentMode) and Color3.fromRGB(0, 150, 200) or Color3.fromRGB(40, 40, 60)
+    end
+end
+
+for name, btn in pairs(modeButtons) do
+    btn.MouseButton1Click:Connect(function()
+        currentMode = name
+        updateModeHighlight()
+        updateStatus()
+        if controlTarget then stopControl() end
+    end)
+end
+
+-- ===== STATUS =====
+local function updateStatus()
+    local count = 0
+    for _ in pairs(selectedPlayers) do count = count + 1 end
+    if count == 0 then
+        statusLabel.Text = "Выберите игроков"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+    elseif currentMode == "Контроль" and count > 1 then
+        statusLabel.Text = "⚠️ Для контроля выберите 1 игрока"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+    else
+        statusLabel.Text = "Готов: " .. count .. " целей | Режим: " .. currentMode
+        statusLabel.TextColor3 = Color3.fromRGB(150, 200, 150)
+    end
+end
+
+-- ===== FLING: POWERFUL =====
+local function flingPowerful(target)
+    if not target or not target.Character then return end
+    local root = target.Character:FindFirstChild("HumanoidRootPart")
     if not root then return end
+    local localRoot = getLocalRoot()
+    if not localRoot then return end
 
-    local direction = Camera.CFrame.LookVector + Vector3.new(0, 0.3, 0)
-    local force = direction.Unit * flingPower * 1.5
+    local dir = (root.Position - localRoot.Position).Unit
+    local force = dir * 500 + Vector3.new(0, 200, 0) + Vector3.new(math.random(-100, 100), 0, math.random(-100, 100))
 
-    -- BodyVelocity (основной метод)
+    root.Velocity = force
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
     bv.Velocity = force
     bv.Parent = root
 
-    -- Прямой импульс
-    root.Velocity = force
-
-    -- Дополнительный BodyThrust
     local bt = Instance.new("BodyThrust")
     bt.Force = force * 500
     bt.Location = root.Position
@@ -213,43 +230,202 @@ local function classicFling()
     bt:Destroy()
 end
 
--- ========== ОСНОВНАЯ ФУНКЦИЯ FLING ==========
-local function doFling()
-    if isFlinging then return end
-    local char = LocalPlayer.Character
-    if not char then return end
+-- ===== FLING: VORTEX =====
+local function flingVortex(target)
+    if not target or not target.Character then return end
+    local root = target.Character:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+    local localRoot = getLocalRoot()
+    if not localRoot then return end
 
-    isFlinging = true
-    flingBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    flingBtn.Text = "⏳ FLING..."
+    local center = localRoot.Position
+    local dir = (root.Position - center).Unit
+    local perp = Vector3.new(-dir.Z, 0, dir.X).Unit
 
-    if flingMode == "UNIQUE" then
-        uniqueFling()
-    else
-        classicFling()
+    for i = 1, 10 do
+        local angle = i * 0.6
+        local radius = 15 + math.sin(i * 0.5) * 5
+        local x = center.X + math.cos(angle) * radius
+        local z = center.Z + math.sin(angle) * radius
+        local y = center.Y + 10 + math.sin(i * 0.8) * 8
+
+        local targetPos = Vector3.new(x, y, z)
+        local force = (targetPos - root.Position) * 3 + Vector3.new(0, 15, 0)
+
+        root.Velocity = force
+        task.wait(0.05)
     end
 
-    isFlinging = false
-    updateModeDisplay() -- возвращаем цвет кнопки
+    root.Velocity = Vector3.new(0, 250, 0) + Vector3.new(math.random(-80, 80), 0, math.random(-80, 80))
 end
 
--- Нажатие на кнопку
-flingBtn.MouseButton1Click:Connect(doFling)
+-- ===== CONTROL =====
+local function startControl(target)
+    if controlTarget then stopControl() end
+    if not target or not target.Character then return end
 
--- Горячая клавиша F
+    controlTarget = target
+    local root = target.Character:FindFirstChild("HumanoidRootPart")
+    local humanoid = target.Character:FindFirstChild("Humanoid")
+    if not root or not humanoid then return end
+
+    statusLabel.Text = "🎮 Контроль над " .. target.Name
+    statusLabel.TextColor3 = Color3.fromRGB(0, 255, 200)
+
+    humanoid.PlatformStand = true
+    humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.Parent = root
+
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+    bg.CFrame = root.CFrame
+    bg.Parent = root
+
+    controlConnections = {}
+
+    local moveConn = RunService.RenderStepped:Connect(function()
+        if not controlTarget or not controlTarget.Character then
+            stopControl()
+            return
+        end
+        local r = controlTarget.Character:FindFirstChild("HumanoidRootPart")
+        if not r or not bv then return end
+
+        local move = Vector3.new()
+        local cam = workspace.CurrentCamera
+        local forward = cam.CFrame.LookVector * Vector3.new(1,0,1)
+        local right = cam.CFrame.RightVector
+
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - forward end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + right end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then move = move - Vector3.new(0, 1, 0) end
+
+        if move.Magnitude > 0 then
+            bv.Velocity = move.Unit * 60
+        else
+            bv.Velocity = Vector3.new(0, 0, 0)
+        end
+
+        if bg then
+            bg.CFrame = CFrame.new(r.Position, r.Position + Vector3.new(0, 1, 0))
+        end
+    end)
+    table.insert(controlConnections, moveConn)
+
+    local removeConn = controlTarget.CharacterRemoving:Connect(function()
+        stopControl()
+    end)
+    table.insert(controlConnections, removeConn)
+end
+
+local function stopControl()
+    if controlTarget and controlTarget.Character then
+        local humanoid = controlTarget.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+            humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        end
+        -- Безопасное удаление BodyVelocity и BodyGyro
+        for _, obj in ipairs(controlTarget.Character:GetDescendants()) do
+            if obj:IsA("BodyVelocity") or obj:IsA("BodyGyro") then
+                obj:Destroy()
+            end
+        end
+    end
+    for _, conn in ipairs(controlConnections) do
+        conn:Disconnect()
+    end
+    controlConnections = {}
+    controlTarget = nil
+    updateStatus()
+end
+
+-- ===== START ACTION =====
+local function startAction()
+    if isRunning then return end
+
+    local targets = {}
+    for plr, _ in pairs(selectedPlayers) do
+        if plr and plr.Character then
+            table.insert(targets, plr)
+        end
+    end
+
+    if #targets == 0 then
+        statusLabel.Text = "❌ Нет целей"
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        task.wait(1)
+        updateStatus()
+        return
+    end
+
+    if currentMode == "Контроль" then
+        if #targets > 1 then
+            statusLabel.Text = "⚠️ Для контроля выберите 1 игрока"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            task.wait(1.5)
+            updateStatus()
+            return
+        end
+        startControl(targets[1])
+        return
+    end
+
+    isRunning = true
+    actionBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    actionBtn.Text = "⏳ ..."
+    statusLabel.Text = "⏳ Выполняется..."
+
+    for _, plr in ipairs(targets) do
+        if currentMode == "Мощный" then
+            flingPowerful(plr)
+        elseif currentMode == "Вихрь" then
+            flingVortex(plr)
+        end
+        task.wait(0.15)
+    end
+
+    isRunning = false
+    actionBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    actionBtn.Text = "💥 FLING"
+    updateStatus()
+end
+
+-- ===== BUTTONS =====
+actionBtn.MouseButton1Click:Connect(startAction)
+
+stopBtn.MouseButton1Click:Connect(function()
+    if currentMode == "Контроль" then
+        stopControl()
+    end
+    isRunning = false
+    actionBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    actionBtn.Text = "💥 FLING"
+    updateStatus()
+end)
+
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end
     if input.KeyCode == Enum.KeyCode.F then
-        doFling()
+        startAction()
     end
 end)
 
--- Защита
-LocalPlayer.CharacterAdded:Connect(function()
-    isFlinging = false
-    updateModeDisplay()
+-- ===== EVENTS =====
+Players.PlayerAdded:Connect(updatePlayerList)
+Players.PlayerRemoving:Connect(function(plr)
+    if controlTarget == plr then stopControl() end
+    updatePlayerList()
 end)
 
--- Инициализация
-updatePowerDisplay()
-updateModeDisplay()
+-- ===== INIT =====
+updatePlayerList()
+updateModeHighlight()
+updateStatus()
