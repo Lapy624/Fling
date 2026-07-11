@@ -1,398 +1,142 @@
--- ULTIMATE KICK & CRASH v7.0 (UNIVERSAL - ONE SCRIPT)
--- РАБОТАЕТ ВЕЗДЕ: ServerScriptService, StarterPlayerScripts, Workspace
-
-local isServer = game:GetService("RunService"):IsServer()
+-- INVISIBLE + GOD MODE v3.0 (DRAGGABLE ICON)
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
+local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
--- ===== СОЗДАЁМ REMOTE EVENT =====
-local remote = Instance.new("RemoteEvent")
-remote.Name = "KickCrashRemote"
-remote.Parent = ReplicatedStorage
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "IGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer.PlayerGui
 
--- ============================================================
--- ===== СЕРВЕРНАЯ ЧАСТЬ =====
--- ============================================================
-if isServer then
-    print("🚀 KICK & CRASH v7.0 (SERVER MODE)")
+-- ===== ИКОНКА (ПЕРЕТАСКИВАЕМАЯ) =====
+local icon = Instance.new("TextButton")
+icon.Size = UDim2.new(0, 55, 0, 55)
+icon.Position = UDim2.new(0, 10, 0, 10)
+icon.BackgroundColor3 = Color3.fromRGB(25,25,35)
+icon.BorderSizePixel = 0
+icon.Text = "👻"
+icon.TextScaled = true
+icon.TextColor3 = Color3.fromRGB(0,255,200)
+icon.Parent = screenGui
 
-    local cooldowns = {}
+local dragging = false
+local dragStartPos = nil
+local iconStartPos = nil
 
-    local function KickPlayer(player, reason)
-        if player and player.Parent then
-            player:Kick(reason or "AntiCheat")
+icon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStartPos = input.Position
+        iconStartPos = icon.Position
+    end
+end)
+
+icon.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+icon.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+        local delta = input.Position - dragStartPos
+        icon.Position = UDim2.new(
+            iconStartPos.X.Scale,
+            iconStartPos.X.Offset + delta.X,
+            iconStartPos.Y.Scale,
+            iconStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- ===== МЕНЮ =====
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0, 180, 0, 100)
+menu.Position = UDim2.new(0, 70, 0, 10)
+menu.BackgroundColor3 = Color3.fromRGB(20,20,35)
+menu.BorderSizePixel = 0
+menu.Visible = false
+menu.Parent = screenGui
+
+local btn = Instance.new("TextButton")
+btn.Size = UDim2.new(0.9,0,0,35)
+btn.Position = UDim2.new(0.05,0,0,10)
+btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
+btn.BorderSizePixel = 0
+btn.Text = "👻 INVISIBLE"
+btn.TextColor3 = Color3.fromRGB(200,200,220)
+btn.Font = Enum.Font.Gotham
+btn.TextSize = 14
+btn.Parent = menu
+
+local btn2 = Instance.new("TextButton")
+btn2.Size = UDim2.new(0.9,0,0,35)
+btn2.Position = UDim2.new(0.05,0,0,50)
+btn2.BackgroundColor3 = Color3.fromRGB(40,40,60)
+btn2.BorderSizePixel = 0
+btn2.Text = "🛡️ GOD MODE"
+btn2.TextColor3 = Color3.fromRGB(200,200,220)
+btn2.Font = Enum.Font.Gotham
+btn2.TextSize = 14
+btn2.Parent = menu
+
+icon.MouseButton1Click:Connect(function()
+    menu.Visible = not menu.Visible
+end)
+
+-- ===== СОСТОЯНИЯ =====
+local invisible = false
+local god = false
+
+-- ===== ПРИМЕНЕНИЕ НЕВИДИМОСТИ =====
+local function applyInvisible(char)
+    if not char then return end
+    for _, part in ipairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = invisible and 1 or 0
+            part.CanCollide = not invisible
         end
     end
-
-    local function ServerKick(target)
-        if not target or not target.Character then return end
-        local root = target.Character:FindFirstChild("HumanoidRootPart")
-        local humanoid = target.Character:FindFirstChild("Humanoid")
-        if not root or not humanoid then return end
-
-        humanoid.PlatformStand = true
-        for _, state in pairs(Enum.HumanoidStateType:GetEnumItems()) do
-            humanoid:SetStateEnabled(state, false)
-        end
-
-        root.CFrame = CFrame.new(root.Position.X, -9999, root.Position.Z)
-
-        spawn(function()
-            while target and target.Character and root.Parent do
-                local force = Vector3.new(math.random(-50000, 50000), 50000, math.random(-50000, 50000))
-                root.Velocity = force
-                humanoid.WalkSpeed = 1000
-                local bv = Instance.new("BodyVelocity")
-                bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
-                bv.Velocity = force
-                bv.Parent = root
-                task.wait(0.02)
-                bv:Destroy()
-            end
-        end)
-
-        task.wait(5)
-        KickPlayer(target, "SpeedHack")
-    end
-
-    local function ServerCrash()
-        for i = 1, 50 do
-            local model = Instance.new("Model")
-            model.Name = "CrashModel_" .. i
-            model.Parent = Workspace
-            for j = 1, 20 do
-                local part = Instance.new("Part")
-                part.Size = Vector3.new(10, 10, 10)
-                part.CFrame = CFrame.new(math.random(-5000, 5000), math.random(-500, 500), math.random(-5000, 5000))
-                part.Anchored = true
-                part.Material = Enum.Material.SmoothPlastic
-                local mesh = Instance.new("SpecialMesh")
-                mesh.MeshType = Enum.MeshType.Sphere
-                mesh.Scale = Vector3.new(1, 1, 1) * 5
-                mesh.Parent = part
-                part.Parent = model
-            end
-        end
-
-        spawn(function()
-            while true do
-                local p = Instance.new("Part")
-                p.Size = Vector3.new(1, 1, 1)
-                p.CFrame = CFrame.new(math.random(-1000, 1000), math.random(0, 200), math.random(-1000, 1000))
-                p.Anchored = true
-                p.Parent = Workspace
-                game:GetService("Debris"):AddItem(p, 0.05)
-                task.wait()
-            end
-        end)
-    end
-
-    remote.OnServerEvent:Connect(function(player, mode, targets)
-        local now = tick()
-        if cooldowns[player] and (now - cooldowns[player]) < 0.5 then
-            KickPlayer(player, "RemoteSpam")
-            return
-        end
-        cooldowns[player] = now
-
-        if typeof(mode) ~= "string" then
-            KickPlayer(player, "InvalidData")
-            return
-        end
-
-        if mode == "kick" then
-            if typeof(targets) ~= "table" then
-                KickPlayer(player, "InvalidData")
-                return
-            end
-            for _, target in ipairs(targets) do
-                if typeof(target) ~= "Instance" then
-                    KickPlayer(player, "InvalidData")
-                    return
-                end
-                ServerKick(target)
-            end
-        elseif mode == "crash" then
-            ServerCrash()
-        else
-            KickPlayer(player, "InvalidCommand")
-        end
-    end)
-
-    -- РУКОПОЖАТИЕ
-    Players.PlayerAdded:Connect(function(player)
-        spawn(function()
-            while player and player.Parent do
-                task.wait(10)
-                local nonce = math.random(100000, 999999)
-                player:SetAttribute("Handshake", nonce)
-                remote:FireClient(player, "Ping", nonce)
-                task.wait(3)
-                if player:GetAttribute("Handshake") == nonce then
-                    -- ok
-                else
-                    KickPlayer(player, "AntiCheat")
-                end
-            end
-        end)
-    end)
-
-    remote.OnServerEvent:Connect(function(player, mode, data)
-        if mode == "Pong" then
-            if typeof(data) ~= "number" then
-                KickPlayer(player, "InvalidData")
-                return
-            end
-            if player:GetAttribute("Handshake") == data then
-                player:SetAttribute("Handshake", nil)
-            end
-        end
-    end)
-
--- ============================================================
--- ===== КЛИЕНТСКАЯ ЧАСТЬ (GUI) =====
--- ============================================================
-else
-    print("🔨 KICK & CRASH v7.0 (CLIENT MODE)")
-
-    local LocalPlayer = Players.LocalPlayer
-    local UserInputService = game:GetService("UserInputService")
-
-    -- Ждём RemoteEvent
-    local remote = ReplicatedStorage:WaitForChild("KickCrashRemote")
-
-    -- ===== GUI =====
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KickGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = LocalPlayer.PlayerGui
-
-    local iconBtn = Instance.new("TextButton")
-    iconBtn.Size = UDim2.new(0, 50, 0, 50)
-    iconBtn.Position = UDim2.new(0, 10, 0, 10)
-    iconBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    iconBtn.BorderSizePixel = 0
-    iconBtn.Text = "🔨"
-    iconBtn.TextScaled = true
-    iconBtn.TextColor3 = Color3.fromRGB(255, 200, 50)
-    iconBtn.Parent = screenGui
-    local iconCorner = Instance.new("UICorner")
-    iconCorner.CornerRadius = UDim.new(1, 0)
-    iconCorner.Parent = iconBtn
-    local iconStroke = Instance.new("UIStroke")
-    iconStroke.Color = Color3.fromRGB(255, 200, 50)
-    iconStroke.Thickness = 2
-    iconStroke.Parent = iconBtn
-
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 220, 0, 400)
-    mainFrame.Position = UDim2.new(0, 70, 0, 10)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = false
-    mainFrame.Parent = screenGui
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 10)
-    frameCorner.Parent = mainFrame
-    local frameStroke = Instance.new("UIStroke")
-    frameStroke.Color = Color3.fromRGB(255, 200, 50)
-    frameStroke.Thickness = 2
-    frameStroke.Parent = mainFrame
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.Position = UDim2.new(0, 0, 0, 5)
-    title.BackgroundTransparency = 1
-    title.Text = "🔨 KICK & CRASH"
-    title.TextColor3 = Color3.fromRGB(255, 200, 50)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 18
-    title.Parent = mainFrame
-
-    local playerList = Instance.new("ScrollingFrame")
-    playerList.Size = UDim2.new(1, -10, 0, 150)
-    playerList.Position = UDim2.new(0, 5, 0, 40)
-    playerList.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    playerList.BorderSizePixel = 0
-    playerList.CanvasSize = UDim2.new(0, 0, 0, 0)
-    playerList.ScrollBarThickness = 4
-    playerList.ScrollBarImageColor3 = Color3.fromRGB(255, 200, 50)
-    playerList.Parent = mainFrame
-    local listCorner = Instance.new("UICorner")
-    listCorner.CornerRadius = UDim.new(0, 6)
-    listCorner.Parent = playerList
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.SortOrder = Enum.SortOrder.Name
-    listLayout.Padding = UDim.new(0, 4)
-    listLayout.Parent = playerList
-
-    local kickBtn = Instance.new("TextButton")
-    kickBtn.Size = UDim2.new(0.43, 0, 0, 40)
-    kickBtn.Position = UDim2.new(0.04, 0, 0, 200)
-    kickBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    kickBtn.BorderSizePixel = 0
-    kickBtn.Text = "👢 KICK"
-    kickBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    kickBtn.Font = Enum.Font.GothamBold
-    kickBtn.TextSize = 16
-    kickBtn.Parent = mainFrame
-    local kickCorner = Instance.new("UICorner")
-    kickCorner.CornerRadius = UDim.new(0, 6)
-    kickCorner.Parent = kickBtn
-
-    local crashBtn = Instance.new("TextButton")
-    crashBtn.Size = UDim2.new(0.43, 0, 0, 40)
-    crashBtn.Position = UDim2.new(0.53, 0, 0, 200)
-    crashBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 200)
-    crashBtn.BorderSizePixel = 0
-    crashBtn.Text = "💀 CRASH"
-    crashBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    crashBtn.Font = Enum.Font.GothamBold
-    crashBtn.TextSize = 16
-    crashBtn.Parent = mainFrame
-    local crashCorner = Instance.new("UICorner")
-    crashCorner.CornerRadius = UDim.new(0, 6)
-    crashCorner.Parent = crashBtn
-
-    local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(1, -10, 0, 25)
-    statusLabel.Position = UDim2.new(0, 5, 0, 250)
-    statusLabel.BackgroundTransparency = 1
-    statusLabel.Text = "Выберите игроков"
-    statusLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
-    statusLabel.Font = Enum.Font.Gotham
-    statusLabel.TextSize = 14
-    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
-    statusLabel.Parent = mainFrame
-
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 25, 0, 25)
-    closeBtn.Position = UDim2.new(1, -30, 0, 5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
-    closeBtn.BorderSizePixel = 0
-    closeBtn.Text = "✕"
-    closeBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-    closeBtn.Font = Enum.Font.Gotham
-    closeBtn.TextSize = 14
-    closeBtn.Parent = mainFrame
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(1, 0)
-    closeCorner.Parent = closeBtn
-
-    -- ===== СОСТОЯНИЕ =====
-    local selectedPlayers = {}
-    local isRunning = false
-    local menuOpen = false
-
-    iconBtn.MouseButton1Click:Connect(function()
-        menuOpen = not menuOpen
-        mainFrame.Visible = menuOpen
-        if menuOpen then
-            updatePlayerList()
-            updateStatus()
-        end
-    end)
-
-    closeBtn.MouseButton1Click:Connect(function()
-        menuOpen = false
-        mainFrame.Visible = false
-    end)
-
-    local function updatePlayerList()
-        for _, child in ipairs(playerList:GetChildren()) do
-            if child:IsA("TextButton") then child:Destroy() end
-        end
-
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                local b = Instance.new("TextButton")
-                b.Size = UDim2.new(1, -4, 0, 28)
-                b.Text = plr.Name
-                b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-                b.BorderSizePixel = 0
-                b.TextColor3 = Color3.fromRGB(200, 200, 220)
-                b.Font = Enum.Font.Gotham
-                b.TextSize = 14
-                b.TextXAlignment = Enum.TextXAlignment.Left
-                b.Parent = playerList
-                local corner = Instance.new("UICorner")
-                corner.CornerRadius = UDim.new(0, 4)
-                corner.Parent = b
-
-                if selectedPlayers[plr] then
-                    b.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-                end
-
-                b.MouseButton1Click:Connect(function()
-                    if selectedPlayers[plr] then
-                        selectedPlayers[plr] = nil
-                        b.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-                    else
-                        selectedPlayers[plr] = true
-                        b.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-                    end
-                    updateStatus()
-                end)
-            end
-        end
-
-        local count = #playerList:GetChildren() - 1
-        playerList.CanvasSize = UDim2.new(0, 0, 0, count * 32 + 10)
-    end
-
-    local function updateStatus()
-        local count = 0
-        for _ in pairs(selectedPlayers) do count = count + 1 end
-        if count == 0 then
-            statusLabel.Text = "Выберите игроков"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-        else
-            statusLabel.Text = "Выбрано: " .. count .. " игроков"
-            statusLabel.TextColor3 = Color3.fromRGB(150, 200, 150)
-        end
-    end
-
-    local function startAction(mode)
-        if isRunning then return end
-
-        local targets = {}
-        for plr, _ in pairs(selectedPlayers) do
-            if plr and plr.Character then
-                table.insert(targets, plr)
-            end
-        end
-
-        if #targets == 0 and mode ~= "crash" then
-            statusLabel.Text = "❌ Нет целей!"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
-            task.wait(1)
-            updateStatus()
-            return
-        end
-
-        isRunning = true
-        statusLabel.Text = "⏳ Выполняется..."
-        statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
-
-        remote:FireServer(mode, targets)
-
-        isRunning = false
-        updateStatus()
-    end
-
-    kickBtn.MouseButton1Click:Connect(function() startAction("kick") end)
-    crashBtn.MouseButton1Click:Connect(function() startAction("crash") end)
-
-    Players.PlayerAdded:Connect(updatePlayerList)
-    Players.PlayerRemoving:Connect(updatePlayerList)
-
-    remote.OnClientEvent:Connect(function(mode, data)
-        if mode == "Ping" then
-            remote:FireServer("Pong", data)
-        end
-    end)
-
-    updatePlayerList()
-    updateStatus()
 end
+
+-- ===== ПРИМЕНЕНИЕ GOD MODE =====
+local function applyGod(char)
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid then
+        if god then
+            humanoid.MaxHealth = 1e9
+            humanoid.Health = 1e9
+            humanoid.BreakJointsOnDeath = false
+        else
+            humanoid.MaxHealth = 100
+            humanoid.Health = 100
+            humanoid.BreakJointsOnDeath = true
+        end
+    end
+end
+
+-- ===== ПРИ РЕСПАВНЕ =====
+LocalPlayer.CharacterAdded:Connect(function(char)
+    char:WaitForChild("Humanoid")
+    task.wait(0.1)
+    applyInvisible(char)
+    applyGod(char)
+end)
+
+-- ===== INVISIBLE TOGGLE =====
+btn.MouseButton1Click:Connect(function()
+    invisible = not invisible
+    btn.BackgroundColor3 = invisible and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
+    applyInvisible(LocalPlayer.Character)
+end)
+
+-- ===== GOD MODE TOGGLE =====
+btn2.MouseButton1Click:Connect(function()
+    god = not god
+    btn2.BackgroundColor3 = god and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
+    applyGod(LocalPlayer.Character)
+end)
+
+print("👻 INVISIBLE + GOD MODE v3.0 LOADED")
