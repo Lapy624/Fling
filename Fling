@@ -1,6 +1,5 @@
 -- ============================================================
--- ULTIMATE GHOST + GOD MODE v10.0 (PART 1/2)
--- ВСТАВЛЯЙ В DELTA
+-- ULTIMATE GHOST + GOD MODE v10.0 (FIXED - ALL IN ONE)
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -9,77 +8,6 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
-
--- ===== GUI =====
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "UltimateGui"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = LocalPlayer.PlayerGui
-
-local icon = Instance.new("TextButton")
-icon.Size = UDim2.new(0, 55, 0, 55)
-icon.Position = UDim2.new(0, 10, 0, 10)
-icon.BackgroundColor3 = Color3.fromRGB(25,25,35)
-icon.BorderSizePixel = 0
-icon.Text = "☠️"
-icon.TextScaled = true
-icon.TextColor3 = Color3.fromRGB(255,50,50)
-icon.Parent = screenGui
-
-local menu = Instance.new("Frame")
-menu.Size = UDim2.new(0, 220, 0, 150)
-menu.Position = UDim2.new(0, 75, 0, 10)
-menu.BackgroundColor3 = Color3.fromRGB(18,18,28)
-menu.BorderSizePixel = 0
-menu.Visible = false
-menu.Parent = screenGui
-
-local close = Instance.new("TextButton")
-close.Size = UDim2.new(0,25,0,25)
-close.Position = UDim2.new(1,-30,0,5)
-close.BackgroundColor3 = Color3.fromRGB(60,60,80)
-close.BorderSizePixel = 0
-close.Text = "✕"
-close.TextColor3 = Color3.fromRGB(200,200,220)
-close.Font = Enum.Font.Gotham
-close.TextSize = 14
-close.Parent = menu
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1,0,0,30)
-title.Position = UDim2.new(0,0,0,5)
-title.BackgroundTransparency = 1
-title.Text = "☠️ ULTIMATE MOD"
-title.TextColor3 = Color3.fromRGB(255,50,50)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 18
-title.Parent = menu
-
-local function makeBtn(text, y, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0.9,0,0,32)
-    btn.Position = UDim2.new(0.05,0,0,y)
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
-    btn.BorderSizePixel = 0
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(200,200,220)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 14
-    btn.Parent = menu
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
-
-local btnGhost = makeBtn("👻 Ghost Mode", 40, toggleGhost)
-local btnGod = makeBtn("🛡️ God Mode", 80, toggleGod)
-
-icon.MouseButton1Click:Connect(function()
-    menu.Visible = not menu.Visible
-end)
-
-close.MouseButton1Click:Connect(function()
-    menu.Visible = false
-end)
 
 -- ============================================================
 -- ГЛОБАЛЬНЫЕ СОСТОЯНИЯ
@@ -229,11 +157,6 @@ local function setupGodMode()
 end
 
 -- ============================================================
--- ULTIMATE GHOST + GOD MODE v10.0 (PART 2/2)
--- ВСТАВЛЯЙ СРАЗУ ЗА ЧАСТЬЮ 1
--- ============================================================
-
--- ============================================================
 -- ФУНКЦИЯ: НЕВИДИМОСТЬ (скрывает настоящего игрока, оставляя клона)
 -- ============================================================
 local function setGhost(state)
@@ -311,11 +234,11 @@ local function spamPackets()
 end
 
 -- ============================================================
--- ФУНКЦИЯ: ТОГГЛЫ
+-- ФУНКЦИЯ: ТОГГЛЫ (ОБЪЯВЛЕНЫ ПЕРЕД GUI)
 -- ============================================================
 function toggleGhost()
     ghostActive = not ghostActive
-    btnGhost.BackgroundColor3 = ghostActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
+    if btnGhost then btnGhost.BackgroundColor3 = ghostActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60) end
     setGhost(ghostActive)
     if ghostActive then
         spamPackets()
@@ -324,7 +247,7 @@ end
 
 function toggleGod()
     godActive = not godActive
-    btnGod.BackgroundColor3 = godActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60)
+    if btnGod then btnGod.BackgroundColor3 = godActive and Color3.fromRGB(0,150,200) or Color3.fromRGB(40,40,60) end
     if godActive then
         setupGodMode()
         if godLoopConnection then godLoopConnection:Disconnect() end
@@ -348,6 +271,80 @@ function toggleGod()
         if healthConnection then healthConnection:Disconnect() end
     end
 end
+
+-- ============================================================
+-- GUI (СОЗДАЁТСЯ ПОСЛЕ ОБЪЯВЛЕНИЯ ВСЕХ ФУНКЦИЙ)
+-- ============================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "UltimateGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = LocalPlayer.PlayerGui
+
+local icon = Instance.new("TextButton")
+icon.Size = UDim2.new(0, 55, 0, 55)
+icon.Position = UDim2.new(0, 10, 0, 10)
+icon.BackgroundColor3 = Color3.fromRGB(25,25,35)
+icon.BorderSizePixel = 0
+icon.Text = "☠️"
+icon.TextScaled = true
+icon.TextColor3 = Color3.fromRGB(255,50,50)
+icon.Parent = screenGui
+
+local menu = Instance.new("Frame")
+menu.Size = UDim2.new(0, 220, 0, 150)
+menu.Position = UDim2.new(0, 75, 0, 10)
+menu.BackgroundColor3 = Color3.fromRGB(18,18,28)
+menu.BorderSizePixel = 0
+menu.Visible = false
+menu.Parent = screenGui
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0,25,0,25)
+close.Position = UDim2.new(1,-30,0,5)
+close.BackgroundColor3 = Color3.fromRGB(60,60,80)
+close.BorderSizePixel = 0
+close.Text = "✕"
+close.TextColor3 = Color3.fromRGB(200,200,220)
+close.Font = Enum.Font.Gotham
+close.TextSize = 14
+close.Parent = menu
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1,0,0,30)
+title.Position = UDim2.new(0,0,0,5)
+title.BackgroundTransparency = 1
+title.Text = "☠️ ULTIMATE MOD"
+title.TextColor3 = Color3.fromRGB(255,50,50)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 18
+title.Parent = menu
+
+local function makeBtn(text, y, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0.9,0,0,32)
+    btn.Position = UDim2.new(0.05,0,0,y)
+    btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
+    btn.BorderSizePixel = 0
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(200,200,220)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 14
+    btn.Parent = menu
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+-- Теперь кнопки используют функции, которые уже объявлены
+local btnGhost = makeBtn("👻 Ghost Mode", 40, toggleGhost)
+local btnGod = makeBtn("🛡️ God Mode", 80, toggleGod)
+
+icon.MouseButton1Click:Connect(function()
+    menu.Visible = not menu.Visible
+end)
+
+close.MouseButton1Click:Connect(function()
+    menu.Visible = false
+end)
 
 -- ============================================================
 -- АВТОМАТИЧЕСКОЕ ПРИМЕНЕНИЕ ПРИ РЕСПАВНЕ
