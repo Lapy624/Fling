@@ -1,5 +1,5 @@
 -- ============================================================
--- ТРОЛЛЬ-ТЕЛЕПОРТ v4.0 (АНТИ-ДЕТЕКТ + ПРОДВИНУТОЕ МЕНЮ)
+-- ТРОЛЛЬ-ТЕЛЕПОРТ v4.1 (ИСПРАВЛЕННЫЙ СПИСОК)
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -14,13 +14,13 @@ local RunService = game:GetService("RunService")
 -- НАСТРОЙКИ
 -- ============================================================
 local CONFIG = {
-    TeleportDistance = 4,        -- Дистанция за спиной
-    ReturnDelay = 2,             -- Задержка перед авто-возвратом (сек)
-    SmoothTeleport = true,       -- Плавный телепорт (Tween)
-    AntiDetect = true,           -- Анти-детект (случайные задержки, имитация)
-    AutoAttack = false,          -- Авто-удар после ТП
-    AutoReturn = false,          -- Авто-возврат через заданное время
-    AntiAFK = false,             -- Защита от AFK
+    TeleportDistance = 4,
+    ReturnDelay = 2,
+    SmoothTeleport = true,
+    AntiDetect = true,
+    AutoAttack = false,
+    AutoReturn = false,
+    AntiAFK = false,
 }
 
 -- ============================================================
@@ -89,13 +89,12 @@ menuStroke.Color = Color3.fromRGB(255,100,50)
 menuStroke.Thickness = 2
 menuStroke.Parent = menu
 
--- Заголовок (перетаскиваемый)
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 35)
 title.Position = UDim2.new(0, 0, 0, 0)
 title.BackgroundColor3 = Color3.fromRGB(30,30,45)
 title.BackgroundTransparency = 0
-title.Text = "🎯 ТРОЛЛЬ v4.0"
+title.Text = "🎯 ТРОЛЛЬ v4.1"
 title.TextColor3 = Color3.fromRGB(255,100,50)
 title.Font = Enum.Font.GothamBold
 title.TextSize = 18
@@ -104,7 +103,6 @@ local titleCorner = Instance.new("UICorner")
 titleCorner.CornerRadius = UDim.new(0, 12)
 titleCorner.Parent = title
 
--- DRAG для меню (заголовок)
 local menuDragging = false
 local menuDragStart = nil
 local menuStartPos = nil
@@ -151,6 +149,9 @@ closeCorner.Parent = close
 
 icon.MouseButton1Click:Connect(function()
     menu.Visible = not menu.Visible
+    if menu.Visible and currentTab == "Teleport" then
+        updatePlayerList()  -- обновляем список при открытии
+    end
 end)
 
 close.MouseButton1Click:Connect(function()
@@ -257,7 +258,6 @@ local function updatePlayerList()
                 selectedButton = container
             end
 
-            -- DisplayName (большой)
             local nameLabel = Instance.new("TextLabel")
             nameLabel.Size = UDim2.new(1, -10, 0, 22)
             nameLabel.Position = UDim2.new(0, 5, 0, 2)
@@ -269,7 +269,6 @@ local function updatePlayerList()
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = container
 
-            -- Username (маленький)
             local userLabel = Instance.new("TextLabel")
             userLabel.Size = UDim2.new(1, -10, 0, 14)
             userLabel.Position = UDim2.new(0, 5, 0, 26)
@@ -298,10 +297,11 @@ local function updatePlayerList()
 
     local count = #contentScroll:GetChildren() - 1
     contentScroll.CanvasSize = UDim2.new(0, 0, 0, count * 48 + 10)
+    contentScroll.CanvasPosition = 0
 end
 
 -- ============================================================
--- ФУНКЦИИ ТЕЛЕПОРТА С АНТИ-ДЕТЕКТОМ
+-- ФУНКЦИИ ТЕЛЕПОРТА
 -- ============================================================
 local function smoothTeleport(targetCFrame)
     local char = LocalPlayer.Character
@@ -339,12 +339,10 @@ local function teleportBehind()
     local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
     if not targetRoot then return end
 
-    -- Сохраняем позицию
     savedPosition = root.Position
     savedCFrame = root.CFrame
     savedCameraCFrame = Camera.CFrame
 
-    -- Направление от цели к нам
     local dir = (root.Position - targetRoot.Position).Unit
     local dist = CONFIG.TeleportDistance
     if CONFIG.AntiDetect then
@@ -352,17 +350,13 @@ local function teleportBehind()
     end
     local behindPos = targetRoot.Position + dir * dist
 
-    -- Добавляем случайное отклонение для маскировки
     if CONFIG.AntiDetect then
         behindPos = behindPos + Vector3.new(math.random(-2,2)*0.1, 0, math.random(-2,2)*0.1)
     end
 
     local targetCFrame = CFrame.new(behindPos, targetRoot.Position)
-
-    -- Плавный или мгновенный телепорт
     smoothTeleport(targetCFrame)
 
-    -- Обновляем камеру
     Camera.CFrame = CFrame.new(
         behindPos + Vector3.new(0, 1.5, 0),
         targetRoot.Position
@@ -370,7 +364,6 @@ local function teleportBehind()
 
     print("✅ ТП к " .. selectedTarget.DisplayName)
 
-    -- Авто-удар
     if CONFIG.AutoAttack then
         task.wait(0.1)
         local attackBtn = LocalPlayer.PlayerGui:FindFirstChild("AttackButton")
@@ -379,7 +372,6 @@ local function teleportBehind()
         end
     end
 
-    -- Авто-возврат
     if CONFIG.AutoReturn then
         if returnTimer then returnTimer:Disconnect() end
         returnTimer = task.delay(CONFIG.ReturnDelay, function()
@@ -416,7 +408,6 @@ end
 -- ============================================================
 -- ЗАЩИТА ОТ АНТИЧИТА
 -- ============================================================
--- Anti-AFK (имитация движения камеры)
 local antiAFKConn = nil
 local function toggleAntiAFK()
     CONFIG.AntiAFK = not CONFIG.AntiAFK
@@ -433,7 +424,6 @@ local function toggleAntiAFK()
     end
 end
 
--- Анти-кик (периодическая отправка пакетов)
 local antiKickConn = nil
 local function toggleAntiKick()
     if antiKickConn then
@@ -443,7 +433,6 @@ local function toggleAntiKick()
     end
     antiKickConn = RunService.Heartbeat:Connect(function()
         pcall(function()
-            -- Имитация активности
             local char = LocalPlayer.Character
             if char then
                 local humanoid = char:FindFirstChild("Humanoid")
@@ -603,9 +592,7 @@ local function updateTabContent()
 
     if currentTab == "Teleport" then
         createLabel("📋 Выберите игрока:", Color3.fromRGB(255,200,100))
-        -- Список игроков будет добавлен через updatePlayerList, но мы вызываем его в конце
-        -- Пока добавим заглушку
-        createLabel("(Список игроков обновляется автоматически)", Color3.fromRGB(150,150,170))
+        updatePlayerList()  -- обновляем список сразу
 
         createButton("🎯 ТП ЗА СПИНУ", teleportBehind, Color3.fromRGB(200,50,50))
         createButton("↩️ ВЕРНУТЬСЯ", returnBack, Color3.fromRGB(50,200,50))
@@ -644,11 +631,6 @@ local function updateTabContent()
         end, Color3.fromRGB(100,100,200))
         createLabel("💡 Anti-Kick имитирует активность", Color3.fromRGB(150,150,170))
     end
-
-    -- Обновляем список игроков только если вкладка "Teleport"
-    if currentTab == "Teleport" then
-        updatePlayerList()
-    end
 end
 
 -- ============================================================
@@ -669,7 +651,6 @@ end)
 -- ИНИЦИАЛИЗАЦИЯ
 -- ============================================================
 updateTabContent()
--- Выбираем первую вкладку
 for _, b in ipairs(tabButtons) do
     if b.Name == "Teleport" then
         b.BackgroundColor3 = Color3.fromRGB(0,150,200)
@@ -680,7 +661,5 @@ for _, b in ipairs(tabButtons) do
     end
 end
 
-print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v4.0 ЗАГРУЖЕН")
-print("📌 Перетаскиваемая иконка и меню")
-print("📌 Настройки анти-детекта и плавности")
-print("📌 Авто-удар и авто-возврат")
+print("🎯 ТРОЛЛЬ-ТЕЛЕПОРТ v4.1 ЗАГРУЖЕН")
+print("📌 Список игроков обновляется при открытии меню")
